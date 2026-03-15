@@ -20,10 +20,10 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     create_at = Column(DateTime, default=datetime.utcnow)
 
-    back_accounts = relationship("BackAccount", back_populates="user", cascade="all, delete-orphan")
+    bank_accounts = relationship("BankAccount", back_populates="user", cascade="all, delete-orphan")
 
-class BackAccount(Base):
-    __tablename__ = "back_accounts"
+class BankAccount(Base):
+    __tablename__ = "bank_accounts"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -31,14 +31,15 @@ class BackAccount(Base):
     balance = Column(Integer, default=0)
 
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    user = relationship("User", back_popuates="back_accounts")
-    operations = relationship("BankOperations", back_popuates="back_account", cascade="all, delete-orphan")
+    user = relationship("User", back_popuates="bank_accounts")
+    operations = relationship("BankOperations", back_populates="bank_account", cascade="all, delete-orphan")
 
-class BackOperation(Base):
-    id = Column(Integer, primary=True)
-    account_id = Column(Integer, ForeignKey("back_accounts.id"))
+class BankOperation(Base):
+    __tablename__ = "bank_operations"
+    id = Column(Integer, primary_key=True)
+    account_id = Column(Integer, ForeignKey("bank_accounts.id"))
 
     type = Column(Enum(Type_Operation))
     amount = Column(Integer)
@@ -46,6 +47,6 @@ class BackOperation(Base):
     category = Column(String)
 
     create_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    account = relationship("BackAccount", back_populates="operations")
+    account = relationship("BankAccount", back_populates="operations")
