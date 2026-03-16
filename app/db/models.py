@@ -42,7 +42,7 @@ class BankOperation(Base):
     account_id = Column(Integer, ForeignKey("bank_accounts.id"))
 
     type = Column(Enum(Type_Operation))
-    amount = Column(Integer)
+    amount = Column(Float)
     description = Column(String)
     category = Column(String)
 
