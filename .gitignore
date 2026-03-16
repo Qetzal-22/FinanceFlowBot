@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 data/
+db_data/
 *.db
 *.tar
 *.sqbpro
