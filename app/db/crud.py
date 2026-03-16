@@ -1,7 +1,5 @@
-from sys import winver
-
-from sqlalchemy import select, update
-from app.db.models import User, BankAccount, BankOperation
+from sqlalchemy import select
+from app.db.models import User, BankAccount, BankOperation, Type_Operation
 from app.db.database import async_session
 
 async def create_user(telegram_id: int):
@@ -87,3 +85,60 @@ async def update_bank_account(id:int, name: str = None, balance: float = None):
         await session.commit()
         await session.refresh(account)
         return account
+
+async def create_bank_operation(
+                                account_id: int,
+                                type: Type_Operation,
+                                amount: float,
+                                description: str,
+                                category: str
+                                ):
+    async with async_session() as session:
+        operation = BankOperation(account_id=account_id, type=type, amount=amount, description=description, category=category)
+
+        session.add(operation)
+        await session.commit()
+        await session.refresh(operation)
+        return operation
+
+async def get_operation(id: int):
+    async with async_session() as session:
+        operation = session.execute(
+            select(BankOperation).where(BankOperation.id == id)
+        )
+
+        return operation.scalar_one_or_none()
+
+async def get_operation_all():
+    async with async_session() as session:
+        operations = session.execute(
+            select(BankOperation)
+        )
+
+        return operations.scalar().all()
+
+async def update_operation(id: int, type: Type_Operation, amount: float, description: str, category: str):
+    async with async_session() as session:
+        result = session.execute(
+            select(BankOperation).where(BankOperation.id == id)
+        )
+
+        operation = result.scalar_one_or_none()
+        if not operation:
+            return None
+
+        if type:
+            operation.type = type
+
+        if amount:
+            operation.amount = amount
+
+        if description:
+            operation.description = description
+
+        if category:
+            operation.category = category
+
+        await session.commit()
+        await session.refresh(operation)
+        return operation
