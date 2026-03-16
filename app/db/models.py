@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
@@ -28,7 +28,7 @@ class BankAccount(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     name = Column(String)
-    balance = Column(Integer, default=0)
+    balance = Column(Float, default=0.0)
 
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
