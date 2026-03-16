@@ -44,3 +44,46 @@ async def update_user_is_active(id: int, is_active: bool):
         await session.commit()
         await session.refresh(user)
         return user
+
+async def create_bunk_account(user_id: int, name: str):
+    async with async_session() as session:
+        account = BankAccount(user_id=user_id, name=name)
+        session.add(account)
+
+        await session.commit()
+        await session.refresh(account)
+        return account
+
+async def get_bank_account(id: int):
+    async with async_session() as session:
+        account = session.execute(
+            select(BankAccount).where(BankAccount.id == id)
+        )
+
+        return account.scalar_one_or_none
+
+async def get_bank_account_all():
+    async with async_session() as session:
+        accounts = session.execute(
+            select(BankAccount)
+        )
+        return accounts.scalar().all()
+
+async def update_bank_account(id:int, name: str = None, balance: float = None):
+    async with async_session() as session:
+        result = session.execute(
+            select(BankAccount).where(BankAccount.id == id)
+        )
+        account = result.scalar_one_or_none()
+        if not account:
+            return None
+
+        if name:
+            account.name = name
+
+        if balance:
+            account.balance = balance
+
+        await session.commit()
+        await session.refresh(account)
+        return account
