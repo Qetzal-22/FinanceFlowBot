@@ -10,6 +10,14 @@ services:
       - ./db_data:/var/lib/postgresql/data
     restart: always
 
+  init_db:
+    build: .
+    command: python /scripts/init_db.py
+    depends_on:
+      - db
+    env_file:
+      - .env
+
   api:
     build: .
     container_name: finance_flow_api
