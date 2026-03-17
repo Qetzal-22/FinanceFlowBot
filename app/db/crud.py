@@ -23,6 +23,14 @@ async def get_user(id: int):
 
         return user.scalar_one_or_none()
 
+async def get_user_by_telegram_id(telegram_id: int):
+    async with async_session() as session:
+        user = session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+
+        return user.scalar_one_or_none()
+
 async def get_user_all():
     async with async_session() as session:
         users = await session.execute(
