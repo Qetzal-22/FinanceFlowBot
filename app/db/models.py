@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship
 import enum
@@ -33,8 +31,8 @@ class BankAccount(Base):
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    user = relationship("User", back_popuates="bank_accounts")
-    operations = relationship("BankOperations", back_populates="bank_account", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="bank_accounts")
+    operations = relationship("BankOperation", back_populates="account", cascade="all, delete-orphan")
 
 class BankOperation(Base):
     __tablename__ = "bank_operations"
