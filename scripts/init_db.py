@@ -1,0 +1,9 @@
+import asyncio
+
+from app.db.init_db import init_models
+
+async def main():
+    await init_models()
+
+if __name__ == "__main__":
+    asyncio.run(main())
