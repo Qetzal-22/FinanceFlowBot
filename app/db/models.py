@@ -41,6 +41,7 @@ class BankOperation(Base):
 
     type = Column(Enum(Type_Operation))
     amount = Column(Float)
+    balance_after = Column(Float)
     description = Column(String)
     category = Column(String)
 

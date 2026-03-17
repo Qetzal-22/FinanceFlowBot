@@ -92,6 +92,7 @@ async def create_bank_operation(
                                 account_id: int,
                                 type: Type_Operation,
                                 amount: float,
+                                balance_after: float,
                                 description: str,
                                 category: str
                                 ):
@@ -119,7 +120,7 @@ async def get_operation_all():
 
         return operations.scalars().all()
 
-async def update_operation(id: int, type: Type_Operation, amount: float, description: str, category: str):
+async def update_operation(id: int, type: Type_Operation = None, amount: float = None, balance_after: float = None, description: str = None, category: str = None):
     async with async_session() as session:
         result = await session.execute(
             select(BankOperation).where(BankOperation.id == id)
@@ -140,6 +141,9 @@ async def update_operation(id: int, type: Type_Operation, amount: float, descrip
 
         if category:
             operation.category = category
+
+        if balance_after:
+            operation.balance_after = balance_after
 
         await session.commit()
         await session.refresh(operation)
