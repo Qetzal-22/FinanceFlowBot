@@ -2,6 +2,8 @@ from sqlalchemy import select
 from app.db.models import User, BankAccount, BankOperation, Type_Operation
 from app.db.database import async_session
 
+import asyncio
+
 async def create_user(telegram_id: int):
     async with async_session() as session:
         user = User(
@@ -30,7 +32,7 @@ async def get_user_all():
 
 async def update_user_is_active(id: int, is_active: bool):
     async with async_session() as session:
-        result = session.execute(
+        result = await session.execute(
             select(User).where(User.id == id)
         )
         user = result.scalar_one_or_none()
@@ -43,7 +45,7 @@ async def update_user_is_active(id: int, is_active: bool):
         await session.refresh(user)
         return user
 
-async def create_bunk_account(user_id: int, name: str):
+async def create_bank_account(user_id: int, name: str):
     async with async_session() as session:
         account = BankAccount(user_id=user_id, name=name)
         session.add(account)
@@ -54,22 +56,22 @@ async def create_bunk_account(user_id: int, name: str):
 
 async def get_bank_account(id: int):
     async with async_session() as session:
-        account = session.execute(
+        account = await session.execute(
             select(BankAccount).where(BankAccount.id == id)
         )
 
-        return account.scalar_one_or_none
+        return account.scalar_one_or_none()
 
 async def get_bank_account_all():
     async with async_session() as session:
-        accounts = session.execute(
+        accounts = await session.execute(
             select(BankAccount)
         )
-        return accounts.scalar().all()
+        return accounts.scalars().all()
 
 async def update_bank_account(id:int, name: str = None, balance: float = None):
     async with async_session() as session:
-        result = session.execute(
+        result = await session.execute(
             select(BankAccount).where(BankAccount.id == id)
         )
         account = result.scalar_one_or_none()
@@ -103,7 +105,7 @@ async def create_bank_operation(
 
 async def get_operation(id: int):
     async with async_session() as session:
-        operation = session.execute(
+        operation = await session.execute(
             select(BankOperation).where(BankOperation.id == id)
         )
 
@@ -111,15 +113,15 @@ async def get_operation(id: int):
 
 async def get_operation_all():
     async with async_session() as session:
-        operations = session.execute(
+        operations = await session.execute(
             select(BankOperation)
         )
 
-        return operations.scalar().all()
+        return operations.scalars().all()
 
 async def update_operation(id: int, type: Type_Operation, amount: float, description: str, category: str):
     async with async_session() as session:
-        result = session.execute(
+        result = await session.execute(
             select(BankOperation).where(BankOperation.id == id)
         )
 
