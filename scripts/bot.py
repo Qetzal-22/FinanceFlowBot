@@ -4,6 +4,7 @@ from aiogram.filters.command import BotCommand
 
 from app.bot.bot import bot, dp
 from app.bot.handler.user import user_router_bot
+from app.bot.handler.bank_account import account_router_bot
 from app.config.logging_config import setup_logging
 
 from app.db.init_db import init_models
@@ -23,6 +24,7 @@ async def start_bot():
 
     await set_commands(bot)
     dp.include_router(user_router_bot)
+    dp.include_router(account_router_bot)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
