@@ -1,6 +1,7 @@
 from app.db import crud
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 async def create_user(telegram_user_id: int):
@@ -18,3 +19,8 @@ async def check_register(telegram_user_id: int) -> bool:
         return False
     return True
 
+async def get_user_categories(telegram_user_id):
+    logger.info("DB request get categoty telegram_user_id=%s", telegram_user_id)
+    categories = crud.get_user_categories_by_telegram_user_id(telegram_user_id)
+    logger.info("DB successful response get categoty telegram_user_id=%s", telegram_user_id)
+    return categories
