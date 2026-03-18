@@ -41,3 +41,9 @@ async def categories_kb(categories: list[Category]):
         kb.button(text=f"{category.name}", callback_data=f"category_rm:{category.id}")
     return kb.as_markup()
 
+async def choose_type_transaction_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Income", callback_data="type_transaction:income")
+    kb.button(text="Expense", callback_data="type_transaction:expense")
+    return kb.as_markup()
+
