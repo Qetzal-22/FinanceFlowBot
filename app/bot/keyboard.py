@@ -27,3 +27,17 @@ async def profile_kb():
     kb.button(text="Back to menu")
     return kb.as_markup(resize_keyboard=True)
 
+async def category_menu_kb():
+    kb = ReplyKeyboardBuilder()
+    kb.button(text="Add category")
+    kb.button(text="Remove category")
+    kb.button(text="Back to menu")
+    kb.adjust(2, 1)
+    return kb.as_markup(resize_keyboard=True)
+
+async def categories_kb(categories: list[Category]):
+    kb = InlineKeyboardBuilder()
+    for category in categories:
+        kb.button(text=f"{category.name}", callback_data=f"category_rm:{category.id}")
+    return kb.as_markup()
+
