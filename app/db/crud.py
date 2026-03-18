@@ -25,7 +25,7 @@ async def get_user(id: int):
 
 async def get_user_by_telegram_id(telegram_id: int):
     async with async_session() as session:
-        user = session.execute(
+        user = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
         )
 
