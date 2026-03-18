@@ -19,6 +19,7 @@ class User(Base):
     create_at = Column(DateTime, default=datetime.utcnow)
 
     bank_accounts = relationship("BankAccount", back_populates="user", cascade="all, delete-orphan")
+    categories = relationship("UserCategory", back_populates="user", cascade="all, delete-orphan")
 
 class BankAccount(Base):
     __tablename__ = "bank_accounts"
@@ -49,3 +50,19 @@ class BankOperation(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     account = relationship("BankAccount", back_populates="operations")
+
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+
+    user_categories = relationship("UserCategory", back_populates="category")
+
+class UserCategory(Base):
+    __tablename__ = "user_category"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    category_id = Column(Integer, ForeignKey("category.id"))
+
+    user = relationship("User", back_populates="categories")
+    category = relationship("Category", back_populates="user_categories")
