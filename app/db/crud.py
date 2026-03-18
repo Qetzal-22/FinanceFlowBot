@@ -77,6 +77,15 @@ async def get_bank_account_all():
         )
         return accounts.scalars().all()
 
+async def get_bank_accounts_by_telegram_id(telegram_user_id: int):
+    async with async_session() as session:
+        accounts = await session.execute(
+            select(BankAccount).join(User).where(User.telegram_id==telegram_user_id)
+        )
+
+    return accounts.scalars().all()
+
+
 async def update_bank_account(id:int, name: str = None, balance: float = None):
     async with async_session() as session:
         result = await session.execute(
