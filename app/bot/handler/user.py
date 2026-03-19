@@ -152,3 +152,26 @@ async def get_category_for_rm(callback: CallbackQuery):
 
     await delete_category(telegram_user_id, category_id)
     await callback.message.answer("Category will removed")
+
+@user_router_bot.message(F.text.lower() == "bank account")
+async def main_menu_bank_account(message: Message):
+    telegram_user_id = message.from_user.id
+    accounts = await get_bank_accounts(telegram_user_id)
+    logger.info("view account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
+
+    text = "<b>BANK ACCOUNT</b>\n━━━━━━━━━━━━━━━━━━\n"
+
+    if len(accounts) == 0:
+        text += "You haven`t bank account\n━━━━━━━━━━━━━━━━━━\n"
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+        await message.answer("Create your virtual bank account 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
+
+    else:
+        for account in accounts:
+            account_name = account.name
+            account_balance = account.balance
+            text += f"\n<b>{account_name}</b>\nBalance: {account_balance}\n"
+        text += "━━━━━━━━━━━━━━━━━━"
+
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+
