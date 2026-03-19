@@ -1,7 +1,6 @@
 from sqlalchemy import select, delete
 from unicodedata import category
 
-from app.bot.handler.user import user_router_bot
 from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory
 from app.db.database import async_session
 
@@ -251,7 +250,7 @@ async def get_user_categories_by_user_id(user_id: int):
 async def get_user_categories_by_telegram_user_id(telegram_user_id: int):
     async with async_session() as session:
         user_categories = await session.execute(
-            select(UserCategory).join(User).where(User.telegram_user_id == telegram_user_id)
+            select(UserCategory).join(User).where(User.telegram_id == telegram_user_id)
         )
 
         return user_categories.scalars().all()
