@@ -6,10 +6,10 @@ import asyncio
 import logging
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb
+    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
-from app.services.user import create_user, check_register, get_user_categories, create_user_category, create_category
+from app.services.user import create_user, check_register, get_user_categories, create_user_category, create_category, delete_category
 from app.services.bank_account import get_bank_accounts
 from app.db import crud
 
@@ -69,7 +69,7 @@ async def main_menu(message: Message):
 
 @user_router_bot.message(F.text.lower() == "back to menu")
 async def back_to_menu(message: Message):
-    return main_menu(message)
+    return await main_menu(message)
 
 @user_router_bot.message(F.text.lower() == "profile")
 async def view_profile(message: Message):
@@ -80,8 +80,9 @@ async def view_profile(message: Message):
     text = "👤 <b>PROFILE</b>\n━━━━━━━━━━━━━━━━━━\n"
 
     if len(accounts) == 0:
-        text += "\nYou haven`t bank account\n━━━━━━━━━━━━━━━━━━\nCreate your virtual bank account 👇"
-        await message.answer(text, parse_mode="HTML", reply_markup=await create_bank_account_kb())
+        text += "You haven`t bank account\n━━━━━━━━━━━━━━━━━━\n"
+        await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
+        await message.answer("Create your virtual bank account 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
 
     else:
         for account in accounts:
@@ -90,7 +91,7 @@ async def view_profile(message: Message):
             text += f"\n<b>{account_name}</b>\nBalance: {account_balance}\n"
         text += "━━━━━━━━━━━━━━━━━━"
 
-        await message.answer(text, parse_mode="HTML")
+        await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
 
 @user_router_bot.message(F.text.lower() == "my category")
 async def category(message: Message):
@@ -100,13 +101,20 @@ async def category(message: Message):
     text = "<b>CATEGORIES</b>\n━━━━━━━━━━━━━━━━━━\n"
 
     if len(categories) == 0:
-        text += "\nYou haven`t your category\n━━━━━━━━━━━━━━━━━━\nAdd new category 👇"
+        text += "\nYou haven`t your category\n━━━━━━━━━━━━━━━━━━"
     else:
         for category in categories:
             text += f"\n{category.name}\n"
         text += "━━━━━━━━━━━━━━━━━━"
 
     await message.answer(text, parse_mode="HTML", reply_markup=await category_menu_kb())
+    if len(categories) == 0:
+        await message.answer("Add new category 👇", reply_markup=await add_category_kb())
+
+@user_router_bot.callback_query(F.data.startswith("category_add"))
+async def add_category_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    return await add_category(callback.message, state)
 
 @user_router_bot.message(F.text.lower() == "add category")
 async def add_category(message: Message, state: FSMContext):
@@ -114,7 +122,8 @@ async def add_category(message: Message, state: FSMContext):
     await message.answer("Enter name new category: ")
 
 @user_router_bot.message(AddCategory.name)
-async def get_category_name(message: Message):
+async def get_category_name(message: Message, state: FSMContext):
+    await state.clear()
     telegram_user_id = message.from_user.id
     name = message.text
     category_all = await crud.get_categories_all()
@@ -128,3 +137,18 @@ async def get_category_name(message: Message):
     await create_user_category(telegram_user_id, category.id)
     await message.answer("Category will added")
     return
+
+@user_router_bot.message(F.text.lower() == "remove category")
+async def remove_category(message: Message):
+    telegram_user_id = message.from_user.id
+    categories = await get_user_categories(telegram_user_id)
+    await message.answer("Choose category for remove 👇", reply_markup=await categories_kb(categories))
+
+@user_router_bot.callback_query(F.data.startswith("category_rm"))
+async def get_category_for_rm(callback: CallbackQuery):
+    await callback.answer()
+    telegram_user_id = callback.from_user.id
+    category_id = int(callback.data.split(":")[1])
+
+    await delete_category(telegram_user_id, category_id)
+    await callback.message.answer("Category will removed")
