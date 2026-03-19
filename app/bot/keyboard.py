@@ -25,6 +25,7 @@ async def profile_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text="My category")
     kb.button(text="Back to menu")
+    kb.adjust(1, 1)
     return kb.as_markup(resize_keyboard=True)
 
 async def category_menu_kb():
@@ -39,6 +40,7 @@ async def categories_kb(categories: list[Category]):
     kb = InlineKeyboardBuilder()
     for category in categories:
         kb.button(text=f"{category.name}", callback_data=f"category_rm:{category.id}")
+    kb.adjust(1)
     return kb.as_markup()
 
 async def choose_type_transaction_kb():
@@ -59,6 +61,7 @@ async def choose_account_kb(accounts: list[BankAccount]):
     kb = InlineKeyboardBuilder()
     for account in accounts:
         kb.button(text=f"{account.name}", callback_data=f"account:{account.id}")
+    kb.adjust(1)
     return kb.as_markup()
 
 async def choose_account_for_transaction_kb(accounts: list[BankAccount]):
@@ -75,3 +78,8 @@ async def edit_account_kb():
     kb.button(text="Back to menu")
     kb.adjust(1, 2, 1)
     return kb.as_markup(resize_keyboard=True)
+
+async def add_category_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Add category", callback_data="category_add")
+    return kb.as_markup()
