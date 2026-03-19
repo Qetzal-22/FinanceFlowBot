@@ -62,7 +62,7 @@ class UserCategory(Base):
     __tablename__ = "user_category"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    category_id = Column(Integer, ForeignKey("category.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"))
 
     user = relationship("User", back_populates="categories")
     category = relationship("Category", back_populates="user_categories")
