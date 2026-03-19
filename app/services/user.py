@@ -45,3 +45,14 @@ async def create_category(name: str):
     category = await crud.create_category(name)
     logger.info("DB successful response create category name=%s", name)
     return category
+
+
+async def delete_category(telegram_user_id: int, category_id: int):
+    logger.info("DB request get user telegram_user_id=%s", telegram_user_id)
+    user = await crud.get_user_by_telegram_id(telegram_user_id)
+    logger.info("DB successful response get user telegram_user_id=%s", telegram_user_id)
+    user_id = user.id
+
+    logger.info("DB request delete user category user_id=%s category_id=%s", user_id, category_id)
+    await crud.delete_user_category(user_id, category_id)
+    logger.info("DB successful delete user category user_id=%s category_id=%s", user_id, category_id)
