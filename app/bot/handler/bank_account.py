@@ -1,18 +1,22 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
+import logging
 
-from app.bot.handler.user import main_menu
-from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb
+from app.bot.handler.user import main_menu, category
+from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb, \
+    category_for_transaction, main_bank_account_kb, create_bank_account_kb
 from app.bot.static import CreateBankAccount, CreateTransaction
 from app.db import crud
 from app.db.models import Type_Operation
 from app.services import bank_account
 from app.services.bank_operation import create_operation
-from app.services.user import check_register
+from app.services.user import check_register, get_categories
 from app.services.bank_account import get_bank_accounts
 
 account_router_bot = Router()
+
+logger = logging.getLogger(__name__)
 
 @account_router_bot.callback_query(F.data.startswith("create_account"))
 async def create_account(callback: CallbackQuery, state: FSMContext):
@@ -80,5 +84,35 @@ async def get_amount_transaction(message: Message, state: FSMContext):
     amount = float(amount)
     await state.update_data(amount=amount)
 
+    data = await state.get_data()
+    type_transaction = data["type"]
 
+    if type_transaction == "expense":
+        categories = await get_categories(telegram_user_id)
 
+        await message.answer("Choose category 👇", reply_markup=await category_for_transaction(categories))
+    else:
+        await message.answer("Write description for transaction: ")
+        await state.set_state(CreateTransaction.description)
+
+@account_router_bot.callback_query(F.data.startswith("transaction_category"))
+async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    category = callback.data.split(":")[1]
+    await state.update_data(category=category)
+
+    await callback.message.answer("Write description for transaction: ")
+    await state.set_state(CreateTransaction.description)
+
+@account_router_bot.message(CreateTransaction.description)
+async def get_description_transaction(message: Message, state: FSMContext):
+    description = message.text
+    data = await state.get_data()
+    account_id = data["account_id"]
+    type_transaction = data["type"]
+    amount = data["amount"]
+    category = data["category"]
+
+    await create_operation(account_id, type_transaction, amount, description,  category)
+
+    await message.answer("Bank operation recorded")
