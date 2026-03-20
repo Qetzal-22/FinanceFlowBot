@@ -116,3 +116,25 @@ async def get_description_transaction(message: Message, state: FSMContext):
     await create_operation(account_id, type_transaction, amount, description,  category)
 
     await message.answer("Bank operation recorded")
+
+@bank_account.message(F.text.lower() == "bank account")
+async def main_menu_bank_account(message: Message):
+    telegram_user_id = message.from_user.id
+    accounts = await get_bank_accounts(telegram_user_id)
+    logger.info("View account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
+
+    text = "<b>BANK ACCOUNT</b>\n━━━━━━━━━━━━━━━━━━\n"
+
+    if len(accounts) == 0:
+        text += "You haven`t bank account\n━━━━━━━━━━━━━━━━━━\n"
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+        await message.answer("Create your virtual bank account 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
+
+    else:
+        for account in accounts:
+            account_name = account.name
+            account_balance = account.balance
+            text += f"\n<b>{account_name}</b>\nBalance: {account_balance}\n"
+        text += "━━━━━━━━━━━━━━━━━━"
+
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
