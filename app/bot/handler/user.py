@@ -9,7 +9,7 @@ from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, 
     categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
-from app.services.user import create_user, check_register, get_user_categories, create_user_category, create_category, delete_category
+from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category
 from app.services.bank_account import get_bank_accounts
 from app.db import crud
 
@@ -96,7 +96,7 @@ async def view_profile(message: Message):
 @user_router_bot.message(F.text.lower() == "my category")
 async def category(message: Message):
     telegram_user_id = message.from_user.id
-    categories = await get_user_categories(telegram_user_id)
+    categories = await get_categories(telegram_user_id)
 
     text = "<b>CATEGORIES</b>\n━━━━━━━━━━━━━━━━━━\n"
 
@@ -141,7 +141,7 @@ async def get_category_name(message: Message, state: FSMContext):
 @user_router_bot.message(F.text.lower() == "remove category")
 async def remove_category(message: Message):
     telegram_user_id = message.from_user.id
-    categories = await get_user_categories(telegram_user_id)
+    categories = await get_categories(telegram_user_id)
     await message.answer("Choose category for remove 👇", reply_markup=await categories_kb(categories))
 
 @user_router_bot.callback_query(F.data.startswith("category_rm"))
@@ -152,26 +152,3 @@ async def get_category_for_rm(callback: CallbackQuery):
 
     await delete_category(telegram_user_id, category_id)
     await callback.message.answer("Category will removed")
-
-@user_router_bot.message(F.text.lower() == "bank account")
-async def main_menu_bank_account(message: Message):
-    telegram_user_id = message.from_user.id
-    accounts = await get_bank_accounts(telegram_user_id)
-    logger.info("view account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
-
-    text = "<b>BANK ACCOUNT</b>\n━━━━━━━━━━━━━━━━━━\n"
-
-    if len(accounts) == 0:
-        text += "You haven`t bank account\n━━━━━━━━━━━━━━━━━━\n"
-        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
-        await message.answer("Create your virtual bank account 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
-
-    else:
-        for account in accounts:
-            account_name = account.name
-            account_balance = account.balance
-            text += f"\n<b>{account_name}</b>\nBalance: {account_balance}\n"
-        text += "━━━━━━━━━━━━━━━━━━"
-
-        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
-

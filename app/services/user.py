@@ -19,7 +19,7 @@ async def check_register(telegram_user_id: int) -> bool:
         return False
     return True
 
-async def get_user_categories(telegram_user_id):
+async def get_categories(telegram_user_id):
     logger.info("DB request get user telegram_user_id=%s", telegram_user_id)
     user = await crud.get_user_by_telegram_id(telegram_user_id)
     logger.info("DB successful response get user telegram_user_id=%s", telegram_user_id)
