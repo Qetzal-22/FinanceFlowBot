@@ -54,7 +54,7 @@ async def record_transaction(message: Message):
 @account_router_bot.callback_query(F.data.startswith("transaction_account"))
 async def create_transaction(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    account_id = callback.data.split(":")[1]
+    account_id = int(callback.data.split(":")[1])
 
     await state.update_data(account_id=account_id)
 
@@ -88,7 +88,7 @@ async def get_amount_transaction(message: Message, state: FSMContext):
     data = await state.get_data()
     type_transaction = data["type"]
 
-    if type_transaction == "expense":
+    if type_transaction == Type_Operation.EXPENSE:
         categories = await get_categories(telegram_user_id)
 
         await message.answer("Choose category 👇", reply_markup=await category_for_transaction_kb(categories))
@@ -100,6 +100,7 @@ async def get_amount_transaction(message: Message, state: FSMContext):
 async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     category = callback.data.split(":")[1]
+    logger.info("get_category_transaction category=%s", category)
     await state.update_data(category=category)
 
     await callback.message.answer("Write description for transaction: ")
@@ -112,10 +113,12 @@ async def get_description_transaction(message: Message, state: FSMContext):
     account_id = data["account_id"]
     type_transaction = data["type"]
     amount = data["amount"]
-    category = data["category"]
+    if type_transaction == Type_Operation.EXPENSE:
+        category = data["category"]
+        await create_operation(account_id, type_transaction, amount, description,  category)
+    else: await create_operation(account_id, type_transaction, amount, description)
 
-    await create_operation(account_id, type_transaction, amount, description,  category)
-
+    await state.clear()
     await message.answer("Bank operation recorded")
 
 @account_router_bot.message(F.text.lower() == "bank account")
