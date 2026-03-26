@@ -5,7 +5,7 @@ import logging
 
 from app.bot.handler.user import main_menu, category
 from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb, \
-    category_for_transaction, main_bank_account_kb, create_bank_account_kb
+    category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb
 from app.bot.static import CreateBankAccount, CreateTransaction
 from app.db import crud
 from app.db.models import Type_Operation
@@ -18,16 +18,17 @@ account_router_bot = Router()
 
 logger = logging.getLogger(__name__)
 
-@account_router_bot.callback_query(F.data.startswith("create_account"))
-async def create_account(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    telegram_user_id = callback.from_user.id
+@account_router_bot.message(F.text.lower() == "create new account")
+async def create_account(message: Message, state: FSMContext, telegram_user_id: int = None):
+    if not telegram_user_id:
+        telegram_user_id = message.from_user.id
+
     check_user = await check_register(telegram_user_id)
     if not check_user:
-        await callback.message.answer("You are not registered.\nRegister 👇", reply_markup=await register_kb())
+        await message.answer("You are not registered.\nRegister 👇", reply_markup=await register_kb())
         return
 
-    await callback.message.answer("Enter name your new bank account:")
+    await message.answer("Enter name your new bank account:")
     await state.set_state(CreateBankAccount.name)
 
 @account_router_bot.message(CreateBankAccount.name)
@@ -90,7 +91,7 @@ async def get_amount_transaction(message: Message, state: FSMContext):
     if type_transaction == "expense":
         categories = await get_categories(telegram_user_id)
 
-        await message.answer("Choose category 👇", reply_markup=await category_for_transaction(categories))
+        await message.answer("Choose category 👇", reply_markup=await category_for_transaction_kb(categories))
     else:
         await message.answer("Write description for transaction: ")
         await state.set_state(CreateTransaction.description)
@@ -117,7 +118,7 @@ async def get_description_transaction(message: Message, state: FSMContext):
 
     await message.answer("Bank operation recorded")
 
-@bank_account.message(F.text.lower() == "bank account")
+@account_router_bot.message(F.text.lower() == "bank account")
 async def main_menu_bank_account(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)
@@ -138,3 +139,8 @@ async def main_menu_bank_account(message: Message):
         text += "━━━━━━━━━━━━━━━━━━"
 
         await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+
+@account_router_bot.callback_query(F.data.startswith("create_account"))
+async def create_account_button(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    return await create_account(callback.message, state, telegram_user_id=callback.from_user.id)
