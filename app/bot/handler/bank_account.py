@@ -3,16 +3,18 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 import logging
 
-from app.bot.handler.user import main_menu, category
+from app.bot.handler.user import main_menu, category, back_to_menu
 from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb, \
-    category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb
-from app.bot.static import CreateBankAccount, CreateTransaction
+    category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb, choose_account_kb, edit_account_kb, \
+    confirmation_remove_kb
+from app.bot.static import CreateBankAccount, CreateTransaction, RenameAccount
 from app.db import crud
+from app.db.crud import delete_bank_account
 from app.db.models import Type_Operation
 from app.services import bank_account
 from app.services.bank_operation import create_operation
 from app.services.user import check_register, get_categories
-from app.services.bank_account import get_bank_accounts
+from app.services.bank_account import get_bank_accounts, update_account
 
 account_router_bot = Router()
 
@@ -142,6 +144,56 @@ async def main_menu_bank_account(message: Message):
         text += "━━━━━━━━━━━━━━━━━━"
 
         await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+
+
+@account_router_bot.message(F.text.lower() == "edit account")
+async def choose_account_for_edit(message: Message):
+    telegram_user_id = message.from_user.id
+    accounts = await get_bank_accounts(telegram_user_id)
+    await message.answer("Choose account for editing 👇", reply_markup=await choose_account_kb(accounts))
+
+@account_router_bot.callback_query(F.data.startswith("account"))
+async def edit_account_main_menu(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    account_id = int(callback.data.split(":")[1])
+    await state.update_data(account_id=account_id)
+    await callback.message.answer("Edit account:", reply_markup=await edit_account_kb())
+
+
+@account_router_bot.message(F.text.lower() == "rename")
+async def rename_account(message: Message, state: FSMContext):
+    await message.answer("Enter new name: ")
+    await state.set_state(RenameAccount.name)
+
+@account_router_bot.message(RenameAccount.name)
+async def get_new_name(message: Message, state: FSMContext):
+    new_name = message.text
+    data = await state.get_data()
+    account_id = data["account_id"]
+    await update_account(account_id, name=new_name)
+    await message.answer("Account is removed")
+
+    await state.clear()
+
+
+@account_router_bot.message(F.text.lower() == "remove")
+async def confirmation_remove(message: Message):
+    await message.answer("Confirmation remove the account", reply_markup=await confirmation_remove_kb())
+
+@account_router_bot.callback_query(F.data.startswith("conf_remove_account"))
+async def response_confirmation_remove(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    response = callback.data.split(":")[1]
+    if response == "remove":
+        data = await state.get_data()
+        account_id = data["account_id"]
+        await delete_bank_account(account_id)
+        await callback.message.answer("Account successful removed")
+    else:
+        await back_to_menu(callback.message)
+
+    await state.clear()
+
 
 @account_router_bot.callback_query(F.data.startswith("create_account"))
 async def create_account_button(callback: CallbackQuery, state: FSMContext):
