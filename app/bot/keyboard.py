@@ -92,3 +92,9 @@ async def category_for_transaction_kb(categories: list[Category]):
         kb.button(text=f"{category.name}", callback_data=f"transaction_category:{category.id}")
     kb.adjust(1)
     return kb.as_markup()
+
+async def confirmation_remove_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Remove", callback_data="conf_remove_account:remove")
+    kb.button(text="Cancel", callback_data="conf_remove_account:cancel")
+    return kb.as_markup()
