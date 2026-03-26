@@ -1,15 +1,19 @@
 from unicodedata import category
+import logging
 
 from app.db import crud
 from app.db.models import Type_Operation
 
+logger = logging.getLogger(__name__)
 
-async def create_operation(account_id: int, type_operation: Type_Operation, amount: float, description: str, category: str):
+async def create_operation(account_id: int, type_operation: Type_Operation, amount: float, description: str, category: str = None):
     account = await crud.get_bank_account(account_id)
     balance = account.balance
-    if type_operation == "income":
+    logger.info("create_operation balance=%s amount=%s type_operation=%s", balance, amount, type_operation)
+    if type_operation == Type_Operation.INCOME:
         balance_after = balance + amount
     else:
         balance_after = balance - amount
-
+    logger.info("create_operation balance_after=%s", balance_after)
+    await crud.update_bank_account(account_id, balance=balance_after)
     await crud.create_bank_operation(account_id, type_operation, amount, balance_after, description, category)
