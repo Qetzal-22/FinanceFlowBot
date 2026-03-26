@@ -12,3 +12,6 @@ class CreateTransaction(StatesGroup):
 
 class AddCategory(StatesGroup):
     name = State()
+
+class RenameAccount(StatesGroup):
+    name = State()
