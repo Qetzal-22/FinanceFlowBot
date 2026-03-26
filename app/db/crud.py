@@ -116,6 +116,13 @@ async def update_bank_account(id: int, name: str = None, balance: float = None):
         await session.refresh(account)
         return account
 
+async def delete_bank_account(account_id: int):
+    async with async_session() as session:
+        await session.execute(
+            delete(BankAccount).where(BankAccount.id == account_id)
+        )
+        await session.commit()
+
 
 async def create_bank_operation(
         account_id: int,
