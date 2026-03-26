@@ -69,6 +69,7 @@ async def choose_account_for_transaction_kb(accounts: list[BankAccount]):
     kb = InlineKeyboardBuilder()
     for account in accounts:
         kb.button(text=f"{account.name}", callback_data=f"transaction_account:{account.id}")
+    kb.adjust(1)
     return kb.as_markup()
 
 async def edit_account_kb():
@@ -85,8 +86,9 @@ async def add_category_kb():
     kb.button(text="Add category", callback_data="category_add")
     return kb.as_markup()
 
-async def category_for_transaction(categories: list[Category]):
+async def category_for_transaction_kb(categories: list[Category]):
     kb = InlineKeyboardBuilder()
     for category in categories:
         kb.button(text=f"{category.name}", callback_data=f"transaction_category:{category.id}")
+    kb.adjust(1)
     return kb.as_markup()
