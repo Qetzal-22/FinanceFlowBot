@@ -126,7 +126,7 @@ async def create_bank_operation(
         category: str
 ):
     async with async_session() as session:
-        operation = BankOperation(account_id=account_id, type=type, amount=amount, description=description,
+        operation = BankOperation(account_id=account_id, type=type, amount=amount, balance_after=balance_after, description=description,
                                   category=category)
 
         session.add(operation)
