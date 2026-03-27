@@ -1,7 +1,9 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
+from datetime import datetime, timedelta, date
 
 from app.db.models import BankAccount, Category, UserCategory
 from app.db import crud
+from app.utils.time import create_new_date
 
 
 async def register_kb():
@@ -25,8 +27,9 @@ async def main_menu_kb():
 async def profile_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text="My category")
+    kb.button(text="View history")
     kb.button(text="Back to menu")
-    kb.adjust(1, 1)
+    kb.adjust(2, 1)
     return kb.as_markup(resize_keyboard=True)
 
 async def category_menu_kb():
@@ -97,4 +100,18 @@ async def confirmation_remove_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="Remove", callback_data="conf_remove_account:remove")
     kb.button(text="Cancel", callback_data="conf_remove_account:cancel")
+    return kb.as_markup()
+
+async def kalendar_kb(date_now: datetime, count_day: int):
+    kb = InlineKeyboardBuilder()
+    back_date = await create_new_date(date_now, -1)
+    next_date = await create_new_date(date_now, +1)
+    kb.button(text="Back", callback_data=f"kalendar_move:{back_date.year}_{back_date.month}")
+    kb.button(text="Next", callback_data=f"kalendar_move:{next_date.year}_{next_date.month}")
+    for i in range(1, 36):
+        if i <= count_day:
+            kb.button(text=f"{i}", callback_data=f"calendar_day:{i}.{date_now.month}.{date_now.year}")
+        else:
+            kb.button(text=".", callback_data="stud")
+    kb.adjust(2, 7)
     return kb.as_markup()
