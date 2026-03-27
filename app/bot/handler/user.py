@@ -1,3 +1,5 @@
+from datetime import datetime, date, timedelta
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -5,13 +7,15 @@ from aiogram.fsm.context import FSMContext
 import asyncio
 import logging
 
+
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb
+    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb, kalendar_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
 from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category
 from app.services.bank_account import get_bank_accounts
 from app.db import crud
+from app.utils.time import create_new_date, count_day_in_month
 
 user_router_bot = Router()
 logger = logging.getLogger(__name__)
@@ -152,3 +156,38 @@ async def get_category_for_rm(callback: CallbackQuery):
 
     await delete_category(telegram_user_id, category_id)
     await callback.message.answer("Category will removed")
+
+@user_router_bot.message(F.text.lower() == "view history")
+async def choose_date(message: Message, state: FSMContext):
+    date_now = datetime.utcnow()
+    count_days = await count_day_in_month(date_now)
+
+    msg = await message.answer(f"Date: 1.{date_now.month}.{date_now.year}\nChoose day month 👇", reply_markup=await kalendar_kb(date_now, count_days))
+    message_id = msg.message_id
+    await state.update_data(message_id=message_id)
+
+@user_router_bot.callback_query(F.data.startswith("kalendar_move"))
+async def calendar_move(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    callback_data = callback.data.split(":")[1]
+    new_year = int(callback_data.split("_")[0])
+    new_month = int(callback_data.split("_")[1])
+    new_date = datetime(new_year, new_month, 1)
+    count_days = await count_day_in_month(new_date)
+
+    data = await state.get_data()
+    message_id = int(data["message_id"])
+    await callback.bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=message_id,
+        text=f"Date: 1.{new_date.month}.{new_date.year}\nChoose day month 👇"
+    )
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.message.chat.id,
+        message_id=message_id,
+        reply_markup=await kalendar_kb(new_date, count_days)
+    )
+
+@user_router_bot.callback_query(F.data.startswith("stud"))
+async def callback_stud(callback: CallbackQuery):
+    await callback.answer()
