@@ -20,17 +20,17 @@ account_router_bot = Router()
 
 logger = logging.getLogger(__name__)
 
-@account_router_bot.message(F.text.lower() == "create new account")
+@account_router_bot.message(F.text.lower() == "создать новый счёт")
 async def create_account(message: Message, state: FSMContext, telegram_user_id: int = None):
     if not telegram_user_id:
         telegram_user_id = message.from_user.id
 
     check_user = await check_register(telegram_user_id)
     if not check_user:
-        await message.answer("You are not registered.\nRegister 👇", reply_markup=await register_kb())
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
         return
 
-    await message.answer("Enter name your new bank account:")
+    await message.answer("✏️ Введите название нового счёта:")
     await state.set_state(CreateBankAccount.name)
 
 @account_router_bot.message(CreateBankAccount.name)
@@ -43,15 +43,15 @@ async def get_name_account(message: Message, state: FSMContext):
     user_id = user.id
 
     await bank_account.create_account(user_id, name_account)
-    await message.answer(f"'{name_account}' bank account created")
+    await message.answer(f"✅ Счёт «{name_account}» создан")
 
     await main_menu(message)
 
-@account_router_bot.message(F.text.lower() == "record transaction")
+@account_router_bot.message(F.text.lower() == "добавить операцию")
 async def record_transaction(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)
-    await message.answer("Choose bank account for operation", reply_markup=await choose_account_for_transaction_kb(accounts))
+    await message.answer("Выберите счёт для операции 👇", reply_markup=await choose_account_for_transaction_kb(accounts))
 
 @account_router_bot.callback_query(F.data.startswith("transaction_account"))
 async def create_transaction(callback: CallbackQuery, state: FSMContext):
@@ -60,7 +60,7 @@ async def create_transaction(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(account_id=account_id)
 
-    await callback.message.answer("Choose type operation 👇", reply_markup=await choose_type_transaction_kb())
+    await callback.message.answer("Выберите тип операции 👇", reply_markup=await choose_type_transaction_kb())
 
 @account_router_bot.callback_query(F.data.startswith("type_transaction"))
 async def get_type_transaction(callback: CallbackQuery, state: FSMContext):
@@ -71,7 +71,7 @@ async def get_type_transaction(callback: CallbackQuery, state: FSMContext):
     await state.update_data(type=type_operation)
     await state.set_state(CreateTransaction.amount)
 
-    await callback.message.answer("Enter amount operation: ")
+    await callback.message.answer("💰 Введите сумму:")
 
 @account_router_bot.message(CreateTransaction.amount)
 async def get_amount_transaction(message: Message, state: FSMContext):
@@ -79,9 +79,9 @@ async def get_amount_transaction(message: Message, state: FSMContext):
     amount = message.text
 
     if not amount.isdigit():
-        await message.answer("Amount should be Integer")
+        await message.answer("❗ Сумма должна быть числом")
         await state.set_state(CreateTransaction.amount)
-        await message.answer("Enter amount operation: ")
+        await message.answer("💰 Введите сумму:")
         return
 
     amount = float(amount)
@@ -93,9 +93,9 @@ async def get_amount_transaction(message: Message, state: FSMContext):
     if type_transaction == Type_Operation.EXPENSE:
         categories = await get_categories(telegram_user_id)
 
-        await message.answer("Choose category 👇", reply_markup=await category_for_transaction_kb(categories))
+        await message.answer("Выберите категорию 👇", reply_markup=await category_for_transaction_kb(categories))
     else:
-        await message.answer("Write description for transaction: ")
+        await message.answer("✏️ Введите описание операции:")
         await state.set_state(CreateTransaction.description)
 
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
@@ -105,7 +105,7 @@ async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     logger.info("get_category_transaction category=%s", category)
     await state.update_data(category=category)
 
-    await callback.message.answer("Write description for transaction: ")
+    await callback.message.answer("✏️ Введите описание операции:")
     await state.set_state(CreateTransaction.description)
 
 @account_router_bot.message(CreateTransaction.description)
@@ -118,51 +118,52 @@ async def get_description_transaction(message: Message, state: FSMContext):
     if type_transaction == Type_Operation.EXPENSE:
         category = data["category"]
         await create_operation(account_id, type_transaction, amount, description,  category)
-    else: await create_operation(account_id, type_transaction, amount, description)
+    else:
+        await create_operation(account_id, type_transaction, amount, description)
 
     await state.clear()
-    await message.answer("Bank operation recorded")
+    await message.answer("✅ Операция успешно добавлена")
 
-@account_router_bot.message(F.text.lower() == "bank account")
+@account_router_bot.message(F.text.lower() == "банковский счёт")
 async def main_menu_bank_account(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)
     logger.info("View account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
 
-    text = "<b>BANK ACCOUNT</b>\n━━━━━━━━━━━━━━━━━━\n"
+    text = "<b>БАНКОВСКИЕ СЧЕТА</b>\n━━━━━━━━━━━━━━━━━━\n"
 
     if len(accounts) == 0:
-        text += "You haven`t bank account\n━━━━━━━━━━━━━━━━━━\n"
+        text += "У вас пока нет счетов\n━━━━━━━━━━━━━━━━━━\n"
         await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
-        await message.answer("Create your virtual bank account 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
+        await message.answer("➕ Создайте счёт 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
 
     else:
         for account in accounts:
             account_name = account.name
             account_balance = account.balance
-            text += f"\n<b>{account_name}</b>\nBalance: {account_balance}\n"
+            text += f"\n<b>{account_name}</b>\nБаланс: {account_balance}\n"
         text += "━━━━━━━━━━━━━━━━━━"
 
         await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
 
 
-@account_router_bot.message(F.text.lower() == "edit account")
+@account_router_bot.message(F.text.lower() == "редактировать счёт")
 async def choose_account_for_edit(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)
-    await message.answer("Choose account for editing 👇", reply_markup=await choose_account_kb(accounts))
+    await message.answer("Выберите счёт для редактирования 👇", reply_markup=await choose_account_kb(accounts))
 
 @account_router_bot.callback_query(F.data.startswith("account"))
 async def edit_account_main_menu(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     account_id = int(callback.data.split(":")[1])
     await state.update_data(account_id=account_id)
-    await callback.message.answer("Edit account:", reply_markup=await edit_account_kb())
+    await callback.message.answer("⚙️ Управление счётом:", reply_markup=await edit_account_kb())
 
 
-@account_router_bot.message(F.text.lower() == "rename")
+@account_router_bot.message(F.text.lower() == "переименовать")
 async def rename_account(message: Message, state: FSMContext):
-    await message.answer("Enter new name: ")
+    await message.answer("✏️ Введите новое название:")
     await state.set_state(RenameAccount.name)
 
 @account_router_bot.message(RenameAccount.name)
@@ -171,14 +172,14 @@ async def get_new_name(message: Message, state: FSMContext):
     data = await state.get_data()
     account_id = data["account_id"]
     await update_account(account_id, name=new_name)
-    await message.answer("Account is removed")
+    await message.answer("✅ Название счёта обновлено")
 
     await state.clear()
 
 
-@account_router_bot.message(F.text.lower() == "remove")
+@account_router_bot.message(F.text.lower() == "удалить счёт")
 async def confirmation_remove(message: Message):
-    await message.answer("Confirmation remove the account", reply_markup=await confirmation_remove_kb())
+    await message.answer("❗ Вы уверены, что хотите удалить счёт?", reply_markup=await confirmation_remove_kb())
 
 @account_router_bot.callback_query(F.data.startswith("conf_remove_account"))
 async def response_confirmation_remove(callback: CallbackQuery, state: FSMContext):
@@ -188,9 +189,9 @@ async def response_confirmation_remove(callback: CallbackQuery, state: FSMContex
         data = await state.get_data()
         account_id = data["account_id"]
         await delete_bank_account(account_id)
-        await callback.message.answer("Account successful removed")
+        await callback.message.answer("🗑️ Счёт удалён", reply_markup=await main_bank_account_kb())
     else:
-        await back_to_menu(callback.message)
+        await main_menu(callback.message, callback.from_user.id)
 
     await state.clear()
 
