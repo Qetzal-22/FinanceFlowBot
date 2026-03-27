@@ -14,6 +14,7 @@ from app.bot.static import AddCategory
 from app.db.crud import get_user_category
 from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category
 from app.services.bank_account import get_bank_accounts
+from app.services.bank_operation import get_bank_operation_by_date
 from app.db import crud
 from app.utils.time import create_new_date, count_day_in_month
 
@@ -187,6 +188,29 @@ async def calendar_move(callback: CallbackQuery, state: FSMContext):
         message_id=message_id,
         reply_markup=await kalendar_kb(new_date, count_days)
     )
+
+@user_router_bot.callback_query(F.data.startswith("calendar_day"))
+async def view_history_in_day(callback: CallbackQuery):
+    await callback.answer()
+    callback_data = callback.data.split(":")[1]
+    logger.info("view_history_in_day callback_data=%s", callback_data)
+    day = int(callback_data.split(".")[0])
+    month = int(callback_data.split(".")[1])
+    year = int(callback_data.split(".")[2])
+
+    date_operation = datetime(year, month, day)
+    operations = await get_bank_operation_by_date(date_operation)
+    logger.info("view_history_in_day operation_lenght=%s", len(operations))
+    for operation in operations:
+        text = (f"━━━━━━━━━━━━━━━━━━\n"
+                f"Amount: {operation.amount}\n\n"
+                f"Category: {operation.category}\n"
+                f"Description: {operation.description}\n\n"
+                f"Time: {operation.create_at}\n"
+                f"━━━━━━━━━━━━━━━━━━")
+        logger.info("view_history_in_day send text")
+        await callback.message.answer(text)
+
 
 @user_router_bot.callback_query(F.data.startswith("stud"))
 async def callback_stud(callback: CallbackQuery):
