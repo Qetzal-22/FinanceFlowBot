@@ -1,5 +1,6 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, cast, Date
 from unicodedata import category
+from datetime import datetime
 
 from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory
 from app.db.database import async_session
@@ -159,6 +160,14 @@ async def get_operation_all():
 
         return operations.scalars().all()
 
+async def get_operation_by_date(date: datetime):
+    async with async_session() as session:
+        operations = await session.execute(
+            select(BankOperation).where(
+                cast(BankOperation.create_at, Date) == date.date()
+            )
+        )
+        return operations.scalars().all()
 
 async def update_operation(id: int, type: Type_Operation = None, amount: float = None, balance_after: float = None,
                            description: str = None, category: str = None):
