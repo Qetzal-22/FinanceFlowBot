@@ -12,11 +12,13 @@ services:
 
   init_db:
     build: .
-    command: python /scripts/init_db.py
+    command: python scripts/init_db.py
     depends_on:
       - db
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
 
   api:
     build: .
