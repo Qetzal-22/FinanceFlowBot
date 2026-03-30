@@ -9,7 +9,7 @@ import logging
 
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb
+    categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
@@ -92,27 +92,27 @@ async def main_menu(message: Message, telegram_user_id: int = None):
 async def back_to_menu(message: Message):
     return await main_menu(message)
 
-@user_router_bot.message(F.text.lower() == "профиль")
-async def view_profile(message: Message):
-    telegram_user_id = message.from_user.id
-    accounts = await get_bank_accounts(telegram_user_id)
-    logger.info("view account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
-
-    text = "👤 <b>ПРОФИЛЬ</b>\n━━━━━━━━━━━━━━━━━━\n"
-
-    if len(accounts) == 0:
-        text += "У вас пока нет банковских счетов\n━━━━━━━━━━━━━━━━━━\n"
-        await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
-        await message.answer("➕ Создайте свой первый счёт 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
-
-    else:
-        for account in accounts:
-            account_name = account.name
-            account_balance = account.balance
-            text += f"\n<b>{account_name}</b>\nБаланс: {account_balance}\n"
-        text += "━━━━━━━━━━━━━━━━━━"
-
-        await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
+# @user_router_bot.message(F.text.lower() == "профиль")
+# async def view_profile(message: Message):
+#     telegram_user_id = message.from_user.id
+#     accounts = await get_bank_accounts(telegram_user_id)
+#     logger.info("view account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
+#
+#     text = "👤 <b>ПРОФИЛЬ</b>\n━━━━━━━━━━━━━━━━━━\n"
+#
+#     if len(accounts) == 0:
+#         text += "У вас пока нет банковских счетов\n━━━━━━━━━━━━━━━━━━\n"
+#         await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
+#         await message.answer("➕ Создайте свой первый счёт 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
+#
+#     else:
+#         for account in accounts:
+#             account_name = account.name
+#             account_balance = account.balance
+#             text += f"\n<b>{account_name}</b>\nБаланс: {account_balance}\n"
+#         text += "━━━━━━━━━━━━━━━━━━"
+#
+#         await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
 
 @user_router_bot.message(F.text.lower() == "категории")
 async def category(message: Message):
