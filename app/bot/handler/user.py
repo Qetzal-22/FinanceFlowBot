@@ -9,7 +9,7 @@ import logging
 
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb, kalendar_kb
+    categories_kb, category_menu_kb, profile_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
@@ -114,7 +114,7 @@ async def view_profile(message: Message):
 
         await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
 
-@user_router_bot.message(F.text.lower() == "мои категории")
+@user_router_bot.message(F.text.lower() == "категории")
 async def category(message: Message):
     telegram_user_id = message.from_user.id
     categories = await get_categories(telegram_user_id)
@@ -174,17 +174,24 @@ async def get_category_for_rm(callback: CallbackQuery):
     await delete_category(telegram_user_id, category_id)
     await callback.message.answer("🗑️ Категория удалена")
 
-@user_router_bot.message(F.text.lower() == "история операций")
-async def choose_date(message: Message, state: FSMContext):
+@user_router_bot.message(F.text.lower() == "история")
+async def history(message: Message, state: FSMContext):
+    await message.answer("Выберети нужную опцию 👇", reply_markup=await history_kb())
+
+
+@user_router_bot.callback_query(F.data.startswith("history_calendar"))
+async def calendar(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     date_now = datetime.utcnow()
     count_days = await count_day_in_month(date_now)
 
-    msg = await message.answer(
+    msg = await callback.message.answer(
         f"📅 Дата: 1.{date_now.month}.{date_now.year}\nВыберите день 👇",
         reply_markup=await kalendar_kb(date_now, count_days)
     )
     message_id = msg.message_id
     await state.update_data(message_id=message_id)
+
 
 @user_router_bot.callback_query(F.data.startswith("kalendar_move"))
 async def calendar_move(callback: CallbackQuery, state: FSMContext):
