@@ -20,7 +20,7 @@ account_router_bot = Router()
 
 logger = logging.getLogger(__name__)
 
-@account_router_bot.message(F.text.lower() == "создать новый счёт")
+@account_router_bot.message(F.text.lower() == "создать счет")
 async def create_account(message: Message, state: FSMContext, telegram_user_id: int = None):
     if not telegram_user_id:
         telegram_user_id = message.from_user.id
@@ -124,7 +124,7 @@ async def get_description_transaction(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("✅ Операция успешно добавлена")
 
-@account_router_bot.message(F.text.lower() == "банковский счёт")
+@account_router_bot.message(F.text.lower() == "счета")
 async def main_menu_bank_account(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)
@@ -147,7 +147,7 @@ async def main_menu_bank_account(message: Message):
         await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
 
 
-@account_router_bot.message(F.text.lower() == "редактировать счёт")
+@account_router_bot.message(F.text.lower() == "управление счетами")
 async def choose_account_for_edit(message: Message):
     telegram_user_id = message.from_user.id
     accounts = await get_bank_accounts(telegram_user_id)

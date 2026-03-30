@@ -19,9 +19,13 @@ async def create_bank_account_kb():
 async def main_menu_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text="Добавить операцию")
-    kb.button(text="Банковский счёт")
-    kb.button(text="Профиль")
-    kb.adjust(1, 2)
+    kb.button(text="Бюджеты")
+    kb.button(text="Счета")
+    kb.button(text="Категории")
+    kb.button(text="Аналитика")
+    kb.button(text="История")
+    kb.button(text="Настройки")
+    kb.adjust(1, 3, 2, 1)
     return kb.as_markup(resize_keyboard=True)
 
 async def profile_kb():
@@ -55,8 +59,8 @@ async def choose_type_transaction_kb():
 
 async def main_bank_account_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text="Создать новый счёт")
-    kb.button(text="Редактировать счёт")
+    kb.button(text="Создать счет")
+    kb.button(text="Управление счетами")
     kb.button(text="Назад в меню")
     kb.adjust(2, 1)
     return kb.as_markup(resize_keyboard=True)
@@ -77,11 +81,10 @@ async def choose_account_for_transaction_kb(accounts: list[BankAccount]):
 
 async def edit_account_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text="Добавить операцию")
     kb.button(text="Переименовать")
     kb.button(text="Удалить счёт")
     kb.button(text="Назад в меню")
-    kb.adjust(1, 2, 1)
+    kb.adjust(2, 1)
     return kb.as_markup(resize_keyboard=True)
 
 async def add_category_kb():
@@ -100,6 +103,13 @@ async def confirmation_remove_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="Удалить", callback_data="conf_remove_account:remove")
     kb.button(text="Отмена", callback_data="conf_remove_account:cancel")
+    return kb.as_markup()
+
+async def history_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Календарь", callback_data="history_calendar")
+    kb.button(text="Последние 7 дней", callback_data="history_7")
+    kb.button(text="Последние 30 дней", callback_data="history_30")
     return kb.as_markup()
 
 async def kalendar_kb(date_now: datetime, count_day: int):
