@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float, BigInteger
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
@@ -13,7 +13,7 @@ class Type_Operation(enum.Enum):
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
 
     is_active = Column(Boolean, default=True)
     create_at = Column(DateTime, default=datetime.utcnow)
@@ -40,11 +40,11 @@ class BankOperation(Base):
     id = Column(Integer, primary_key=True)
     account_id = Column(Integer, ForeignKey("bank_accounts.id"))
 
-    type = Column(Enum(Type_Operation))
+    type = Column(Enum(Type_Operation, name="type_operation"))
     amount = Column(Float)
     balance_after = Column(Float)
     description = Column(String)
-    category = Column(String)
+    category = Column(Integer)
 
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -66,3 +66,18 @@ class UserCategory(Base):
 
     user = relationship("User", back_populates="categories")
     category = relationship("Category", back_populates="user_categories")
+    budget = relationship("Budget", back_populates="user_category")
+
+
+class Budget(Base):
+    __tablename__ = "budgets"
+    id = Column(Integer, primary_key=True)
+    user_category_id = Column(Integer, ForeignKey("user_category.id"), nullable=False)
+
+    amount = Column(Float)
+
+    year = Column(Integer)
+    month = Column(Integer)
+
+    create_at = Column(DateTime, default=datetime.utcnow)
+    user_category = relationship("UserCategory", back_populates="budget")
