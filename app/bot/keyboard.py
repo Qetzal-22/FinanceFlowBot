@@ -28,13 +28,13 @@ async def main_menu_kb():
     kb.adjust(1, 3, 2, 1)
     return kb.as_markup(resize_keyboard=True)
 
-async def profile_kb():
-    kb = ReplyKeyboardBuilder()
-    kb.button(text="Мои категории")
-    kb.button(text="История операций")
-    kb.button(text="Назад в меню")
-    kb.adjust(2, 1)
-    return kb.as_markup(resize_keyboard=True)
+# async def profile_kb():
+#     kb = ReplyKeyboardBuilder()
+#     kb.button(text="Мои категории")
+#     kb.button(text="История операций")
+#     kb.button(text="Назад в меню")
+#     kb.adjust(2, 1)
+#     return kb.as_markup(resize_keyboard=True)
 
 async def category_menu_kb():
     kb = ReplyKeyboardBuilder()
