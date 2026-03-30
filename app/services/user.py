@@ -56,3 +56,15 @@ async def delete_category(telegram_user_id: int, category_id: int):
     logger.info("DB request delete user category user_id=%s category_id=%s", user_id, category_id)
     await crud.delete_user_category(user_id, category_id)
     logger.info("DB successful delete user category user_id=%s category_id=%s", user_id, category_id)
+
+async def get_user_categories_by_telegram_id(telegram_user_id: int):
+    logger.info("DB request get user_categories by telegram_user_id=%s", telegram_user_id)
+    user_categories = await crud.get_user_categories_by_telegram_user_id(telegram_user_id)
+    logger.info("DB successful response get user_categories by telegram_user_id=%s", telegram_user_id)
+    return user_categories
+
+async def get_category(category_id: int):
+    logger.info("DB request get category category_id=%s", category_id)
+    category = await crud.get_category(category_id)
+    logger.info("DB successful response get category category_id=%s", category_id)
+    return category
