@@ -125,3 +125,20 @@ async def kalendar_kb(date_now: datetime, count_day: int):
             kb.button(text=".", callback_data="stud")
     kb.adjust(2, 7)
     return kb.as_markup()
+
+async def budget_menu_kb():
+    kb = ReplyKeyboardBuilder()
+    kb.button(text="Создать бюджет")
+    kb.button(text="Управление бюджетами")
+    kb.button(text="Назад в меню")
+
+async def budget_edit_menu_kb():
+    kb = ReplyKeyboardBuilder()
+    kb.button(text="Изменить бюджет")
+    kb.button(text="Удалить бюджет")
+    kb.button(text="Назад в меню")
+
+# async def change_budget(budgets, mod):
+#     kb = InlineKeyboardBuilder()
+#     for budget in budgets:
+#         kb.button(text=f"{budget.name}", callback=f"budget_{mod}:{category.id}")
