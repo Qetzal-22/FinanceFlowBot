@@ -192,6 +192,15 @@ async def calendar(callback: CallbackQuery, state: FSMContext):
     message_id = msg.message_id
     await state.update_data(message_id=message_id)
 
+@user_router_bot.callback_query(F.data.startswith("history_7"))
+async def history_7(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer("⚠️Еще не готово (history_7)⚠️")
+
+@user_router_bot.callback_query(F.data.startswith("history_30"))
+async def history_30(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer("⚠️Еще не готово (history_30)⚠️")
 
 @user_router_bot.callback_query(F.data.startswith("kalendar_move"))
 async def calendar_move(callback: CallbackQuery, state: FSMContext):
