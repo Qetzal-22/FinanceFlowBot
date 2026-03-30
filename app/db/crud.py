@@ -2,7 +2,7 @@ from sqlalchemy import select, delete, cast, Date
 from unicodedata import category
 from datetime import datetime
 
-from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory
+from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory, Budget
 from app.db.database import async_session
 
 import asyncio
@@ -236,6 +236,7 @@ async def get_categories_all_by_user_id(user_id: int):
         return categories.scalars().all()
 
 
+
 async def create_user_category(user_id, category_id):
     async with async_session() as session:
         user_category = UserCategory(user_id=user_id, category_id=category_id)
@@ -281,4 +282,37 @@ async def delete_user_category(user_id: int, category_id: int):
             )
         )
 
+        await session.commit()
+
+
+async def create_budget(user_category_id: int, amount: float, year: int, month: int):
+    async with async_session() as session:
+        budget = Budget(user_category_id = user_category_id, amount = amount, year = year, month = month)
+        session.add(budget)
+        await session.commit()
+        await session.refresh(budget)
+        return budget
+
+async def get_budget_by_user_category_id(user_category_id: int):
+    async with async_session() as session:
+        budgets = await session.execute(
+            select(Budget).where(Budget.user_category_id == user_category_id)
+        )
+        return budgets.scalar_one_or_none()
+
+async def edit_budget(budget_id: int, amount: int):
+    async with async_session() as session:
+        budget = await session.execute(
+            select(Budget).where(Budget.id == budget_id)
+        )
+        budget.amount = amount
+        await session.commit()
+        await session.refresh(budget)
+        return budget
+
+async def delete_budget(budget_id: int):
+    async with async_session() as session:
+        await session.execute(
+            delete(Budget).where(Budget.id == budget_id)
+        )
         await session.commit()
