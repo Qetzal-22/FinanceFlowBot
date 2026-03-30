@@ -9,13 +9,15 @@ import logging
 
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb
+    categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb
 from app.bot.static import AddCategory
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
-from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category
+from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category, \
+    get_user_categories_by_telegram_id, get_category
 from app.services.bank_account import get_bank_accounts
 from app.services.bank_operation import get_bank_operation_by_date
+from app.services.budget import get_budget_by_user_category_id
 from app.db import crud
 from app.utils.time import create_new_date, count_day_in_month
 
@@ -29,7 +31,7 @@ async def command_start(message: Message):
 
 Бот для учёта доходов и расходов
 """
-    await message.answer(text, reply_markup=await register_kb())
+    await message.answer(text, reply_markup=await register_kb(), parse_mode="HTML")
 
 @user_router_bot.message(Command("help"))
 async def command_help(message: Message):
@@ -173,6 +175,26 @@ async def get_category_for_rm(callback: CallbackQuery):
 
     await delete_category(telegram_user_id, category_id)
     await callback.message.answer("🗑️ Категория удалена")
+
+@user_router_bot.message(F.text.lower() == "бюджеты")
+async def budget(message: Message):
+    telegram_user_id = message.from_user.id
+    user_categories = await get_user_categories_by_telegram_id(telegram_user_id)
+
+    text = "<b>БЮДЖЕТЫ</b>\n━━━━━━━━━━━━━━━━━━"
+    for user_category in user_categories:
+        category = await get_category(user_category.category_id)
+        budget = await get_budget_by_user_category_id(user_category.id)
+        if budget is None:
+            break
+        text += f"\n{category.name} - {budget.amount}"
+
+    text += "\n\n━━━━━━━━━━━━━━━━━━"
+    await message.answer(text, parse_mode="HTML", reply_markup=await budget_menu_kb())
+
+
+
+
 
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
