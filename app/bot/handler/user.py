@@ -9,8 +9,9 @@ import logging
 
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
-    categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb
-from app.bot.static import AddCategory
+    categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb, \
+    user_category_for_budget_kb
+from app.bot.static import AddCategory, CreateBudget
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
 from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category, \
@@ -18,6 +19,7 @@ from app.services.user import create_user, check_register, get_categories, creat
 from app.services.bank_account import get_bank_accounts
 from app.services.bank_operation import get_bank_operation_by_date
 from app.services.budget import get_budget_by_user_category_id
+from app import services
 from app.db import crud
 from app.utils.time import create_new_date, count_day_in_month
 
@@ -180,21 +182,59 @@ async def get_category_for_rm(callback: CallbackQuery):
 async def budget(message: Message):
     telegram_user_id = message.from_user.id
     user_categories = await get_user_categories_by_telegram_id(telegram_user_id)
-
+    logger.info("budget length_user_categories=%s", len(user_categories))
     text = "<b>БЮДЖЕТЫ</b>\n━━━━━━━━━━━━━━━━━━"
     for user_category in user_categories:
+        logger.info("budget iter for user_categories telegram_user_id=%s user_category_id=%", telegram_user_id, user_category.id)
         category = await get_category(user_category.category_id)
         budget = await get_budget_by_user_category_id(user_category.id)
         if budget is None:
-            break
+            continue
         text += f"\n{category.name} - {budget.amount}"
 
     text += "\n\n━━━━━━━━━━━━━━━━━━"
     await message.answer(text, parse_mode="HTML", reply_markup=await budget_menu_kb())
 
 
+@user_router_bot.message(F.text.lower() == "создать бюджет")
+async def create_budget(message: Message):
+    telegram_user_id = message.from_user.id
+    user_categories = await get_user_categories_by_telegram_id(telegram_user_id)
+    await message.answer("Выбери для какой категории нужно установить бюджет 👇", reply_markup=await user_category_for_budget_kb(user_categories))
 
+@user_router_bot.callback_query(F.data.startswith("budget_category"))
+async def get_category_for_create_budget(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    user_category_id = int(callback.data.split(":")[1])
+    await state.update_data(user_category_id=user_category_id)
 
+    user_category = await get_user_category(user_category_id)
+    category = await get_category(user_category.category_id)
+
+    await callback.message.answer(f"✏️ Введите сумму бюджета для категории {category.name}: ")
+    await state.set_state(CreateBudget.amount)
+
+@user_router_bot.message(CreateBudget.amount)
+async def get_amount_for_create_budget(message: Message, state: FSMContext):
+    amount_res = message.text
+    if not amount_res.isdigit():
+        await message.answer("❌ Вы ввели неверный формат данных. Сумма бюджета должна быть числом.")
+        await message.answer("🔄 Попробуйсе еще раз:")
+        await state.set_state(CreateBudget.amount)
+        return
+
+    amount = float(amount_res)
+
+    data = await state.get_data()
+    user_category_id = data["user_category_id"]
+    logger.info("get_amount_for_create_budget user_category_id=%s type user_category_id=%s", user_category_id, type(user_category_id))
+    await services.budget.create_budget(user_category_id, amount)
+
+    await state.clear()
+
+    user_category = await get_user_category(user_category_id)
+    category = await get_category(user_category.id)
+    await message.answer(f"✅ Новый бюджет создан для категории {category.name}")
 
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
