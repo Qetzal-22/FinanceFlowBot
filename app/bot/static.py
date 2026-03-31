@@ -15,3 +15,6 @@ class AddCategory(StatesGroup):
 
 class RenameAccount(StatesGroup):
     name = State()
+
+class CreateBudget(StatesGroup):
+    amount = State()
