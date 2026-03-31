@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 
 from app.db.models import BankAccount, Category, UserCategory
 from app.db import crud
+from app.services.user import get_category
 from app.utils.time import create_new_date
 
 
@@ -99,6 +100,14 @@ async def category_for_transaction_kb(categories: list[Category]):
     kb.adjust(1)
     return kb.as_markup()
 
+async def user_category_for_budget_kb(user_categories: list[UserCategory]):
+    kb = InlineKeyboardBuilder()
+    for user_category in user_categories:
+        category = await get_category(user_category.category_id)
+        kb.button(text=f"{category.name}", callback_data=f"budget_category:{user_category.id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
 async def confirmation_remove_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="Удалить", callback_data="conf_remove_account:remove")
@@ -131,12 +140,16 @@ async def budget_menu_kb():
     kb.button(text="Создать бюджет")
     kb.button(text="Управление бюджетами")
     kb.button(text="Назад в меню")
+    kb.adjust(2, 1)
+    return kb.as_markup(resize_keyboard=True)
 
 async def budget_edit_menu_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text="Изменить бюджет")
     kb.button(text="Удалить бюджет")
     kb.button(text="Назад в меню")
+    kb.adjust(2, 1)
+    return kb.as_markup(resize_keyboard=True)
 
 # async def change_budget(budgets, mod):
 #     kb = InlineKeyboardBuilder()
