@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float, BigInteger
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, ForeignKey, Float, BigInteger, UniqueConstraint
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
@@ -66,7 +66,7 @@ class UserCategory(Base):
 
     user = relationship("User", back_populates="categories")
     category = relationship("Category", back_populates="user_categories")
-    budget = relationship("Budget", back_populates="user_category")
+    budgets = relationship("Budget", back_populates="user_category")
 
 
 class Budget(Base):
@@ -74,10 +74,19 @@ class Budget(Base):
     id = Column(Integer, primary_key=True)
     user_category_id = Column(Integer, ForeignKey("user_category.id"), nullable=False)
 
-    amount = Column(Float)
+    amount = Column(Float, nullable=False)
 
-    year = Column(Integer)
-    month = Column(Integer)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
 
     create_at = Column(DateTime, default=datetime.utcnow)
-    user_category = relationship("UserCategory", back_populates="budget")
+    user_category = relationship("UserCategory", back_populates="budgets")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_category_id",
+            "year",
+            "month",
+            name="uniq_budget_period"
+        ),
+    )
