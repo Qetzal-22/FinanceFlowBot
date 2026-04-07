@@ -1,4 +1,5 @@
 from sqlalchemy import select, delete, cast, Date
+from sqlalchemy.dialects.postgresql import insert
 from unicodedata import category
 from datetime import datetime
 
@@ -285,20 +286,35 @@ async def delete_user_category(user_id: int, category_id: int):
         await session.commit()
 
 
-async def create_budget(user_category_id: int, amount: float, year: int, month: int):
+async def upsert_budget(user_category_id: int, amount: float, year: int, month: int):
     async with async_session() as session:
-        budget = Budget(user_category_id = user_category_id, amount = amount, year = year, month = month)
-        session.add(budget)
+        stmt = insert(Budget).values(
+            user_category_id=user_category_id,
+            amount=amount,
+            year=year,
+            month=month
+        )
+
+        stmt = stmt.on_conflict_do_update(
+            constraint = "uniq_budget_period",
+            set_={"amount": amount},
+        ).returning(Budget)
+
+        result = await session.execute(stmt)
+        budget = result.scalar_one()
         await session.commit()
-        await session.refresh(budget)
         return budget
 
-async def get_budget_by_user_category_id(user_category_id: int):
+async def get_budget_by_user_category_id_now(year: int, month: int, user_category_id: int):
     async with async_session() as session:
         budgets = await session.execute(
-            select(Budget).where(Budget.user_category_id == user_category_id)
+            select(Budget).where(
+                (Budget.user_category_id == user_category_id),
+                (Budget.year==year),
+                (Budget.month==month)
+            )
         )
-        return budgets.scalar_one_or_none()
+        return budgets.scalars().all()
 
 async def edit_budget(budget_id: int, amount: int):
     async with async_session() as session:
