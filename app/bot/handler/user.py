@@ -18,7 +18,7 @@ from app.services.user import create_user, check_register, get_categories, creat
     get_user_categories_by_telegram_id, get_category
 from app.services.bank_account import get_bank_accounts
 from app.services.bank_operation import get_bank_operation_by_date
-from app.services.budget import get_budget_by_user_category_id
+from app.services.budget import get_budget_by_user_category_id_now
 from app import services
 from app.db import crud
 from app.utils.time import create_new_date, count_day_in_month
@@ -185,9 +185,9 @@ async def budget(message: Message):
     logger.info("budget length_user_categories=%s", len(user_categories))
     text = "<b>БЮДЖЕТЫ</b>\n━━━━━━━━━━━━━━━━━━"
     for user_category in user_categories:
-        logger.info("budget iter for user_categories telegram_user_id=%s user_category_id=%", telegram_user_id, user_category.id)
+        logger.info("budget iter for user_categories telegram_user_id=%s user_category_id=%s", telegram_user_id, user_category.id)
         category = await get_category(user_category.category_id)
-        budget = await get_budget_by_user_category_id(user_category.id)
+        budget = await get_budget_by_user_category_id_now(user_category.id)
         if budget is None:
             continue
         text += f"\n{category.name} - {budget.amount}"
@@ -214,6 +214,7 @@ async def get_category_for_create_budget(callback: CallbackQuery, state: FSMCont
     await callback.message.answer(f"✏️ Введите сумму бюджета для категории {category.name}: ")
     await state.set_state(CreateBudget.amount)
 
+
 @user_router_bot.message(CreateBudget.amount)
 async def get_amount_for_create_budget(message: Message, state: FSMContext):
     amount_res = message.text
@@ -233,8 +234,9 @@ async def get_amount_for_create_budget(message: Message, state: FSMContext):
     await state.clear()
 
     user_category = await get_user_category(user_category_id)
-    category = await get_category(user_category.id)
+    category = await get_category(user_category.category_id)
     await message.answer(f"✅ Новый бюджет создан для категории {category.name}")
+
 
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
