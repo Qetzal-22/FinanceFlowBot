@@ -305,11 +305,39 @@ async def upsert_budget(user_category_id: int, amount: float, year: int, month: 
         await session.commit()
         return budget
 
-async def get_budget_by_user_category_id_now(year: int, month: int, user_category_id: int):
+async def upsert_budget_for_update_new_month(user_category_id: int, amount: float, year: int, month: int):
+    async with async_session() as session:
+        stmt = insert(Budget).values(
+            user_category_id=user_category_id,
+            amount=amount,
+            year=year,
+            month=month
+        )
+
+        stmt = stmt.on_conflict_do_nothing(
+            constraint = "uniq_budget_period",
+        ).returning(Budget)
+
+        result = await session.execute(stmt)
+        budget = result.scalar_one_or_none()
+        await session.commit()
+        return budget
+
+async def get_budget_by_user_category_id_to_date(year: int, month: int, user_category_id: int):
     async with async_session() as session:
         budgets = await session.execute(
             select(Budget).where(
                 (Budget.user_category_id == user_category_id),
+                (Budget.year==year),
+                (Budget.month==month)
+            )
+        )
+        return budgets.scalars().all()
+
+async def get_budget_to_date(year: int, month: int):
+    async with async_session() as session:
+        budgets = await session.execute(
+            select(Budget).where(
                 (Budget.year==year),
                 (Budget.month==month)
             )
