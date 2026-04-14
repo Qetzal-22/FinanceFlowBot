@@ -24,8 +24,10 @@ async def create_budget(user_category_id: int, amount: float):
     year = now.year
     month = now.month
 
+    spend = await crud.get_total_operation_by_user_category(user_category_id)
+
     logger.info("DB request create budget user_category_id=%s year=%s month=%s", user_category_id, year, month)
-    await crud.upsert_budget(user_category_id, amount, year, month)
+    await crud.upsert_budget(user_category_id, amount, spend, year, month)
     logger.info(
         "DB successful response create budget user_category_id=%s year=%s month=%s",
         user_category_id,
