@@ -18,3 +18,6 @@ class RenameAccount(StatesGroup):
 
 class CreateBudget(StatesGroup):
     amount = State()
+
+class EditBudget(StatesGroup):
+    amount = State()
