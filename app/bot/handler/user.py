@@ -292,6 +292,27 @@ async def remove_budget(callback: CallbackQuery, state: FSMContext):
     await services.budget.remove_budget(user_category_id)
     await callback.message.answer("🗑️ Бюджет удален")
 
+
+
+@user_router_bot.message(F.text.lower() == "мои бюджеты")
+async def view_budget(message: Message):
+    telegram_user_id = message.from_user.id
+    categories_with_budget = await get_category_with_budget(telegram_user_id)
+
+    text = "<b>БЮДЖЕТЫ</b>\n━━━━━━━━━━━━━━━━━━\n"
+    for user_category in categories_with_budget:
+        category = await crud.get_category(user_category.category_id)
+        budget = await services.budget.get_budget_by_user_category_id_now(user_category.id)
+        text += f"{category.name}:    {budget.amount}\n"
+
+    text += "━━━━━━━━━━━━━━━━━━"
+
+    await message.answer(text, parse_mode="HTML")
+
+
+
+
+
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
     await message.answer("Выберети нужную опцию 👇", reply_markup=await history_kb())
