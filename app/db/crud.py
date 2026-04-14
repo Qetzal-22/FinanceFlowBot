@@ -1,4 +1,5 @@
 from sqlalchemy import select, delete, cast, Date, func, extract
+from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import insert
 from unicodedata import category
 from datetime import datetime
@@ -76,7 +77,7 @@ async def create_bank_account(user_id: int, name: str):
 async def get_bank_account(id: int):
     async with async_session() as session:
         account = await session.execute(
-            select(BankAccount).where(BankAccount.id == id)
+            select(BankAccount).options(selectinload(BankAccount.user)).where(BankAccount.id == id)
         )
 
         return account.scalar_one_or_none()
@@ -293,6 +294,14 @@ async def get_user_categories_by_user_id(user_id: int):
 
         return user_categories.scalars().all()
 
+async def get_user_category_by_user_id_and_category_id(user_id: int, category_id: int):
+    async with async_session() as session:
+        user_category = await session.execute(
+            select(UserCategory).where(UserCategory.user_id == user_id, UserCategory.category_id == category_id)
+        )
+
+        return user_category.scalar_one_or_none()
+
 
 async def get_user_categories_by_telegram_user_id(telegram_user_id: int):
     async with async_session() as session:
@@ -386,6 +395,20 @@ async def edit_budget(budget_id: int, amount: float):
             return None
 
         budget.amount = amount
+        await session.commit()
+        await session.refresh(budget)
+        return budget
+
+async def edit_budget_add_spend(budget_id: int, spend: float):
+    async with async_session() as session:
+        result_b = await session.execute(
+            select(Budget).where(Budget.id == budget_id)
+        )
+        budget = result_b.scalar_one_or_none()
+        if not budget:
+            return None
+
+        budget.spend += spend
         await session.commit()
         await session.refresh(budget)
         return budget
