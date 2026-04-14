@@ -132,7 +132,7 @@ async def create_bank_operation(
         amount: float,
         balance_after: float,
         description: str,
-        category: str
+        category: int
 ):
     async with async_session() as session:
         operation = BankOperation(account_id=account_id, type=type, amount=amount, balance_after=balance_after, description=description,
