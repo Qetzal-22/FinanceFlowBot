@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, cast, Date
+from sqlalchemy import select, delete, cast, Date, func, extract
 from sqlalchemy.dialects.postgresql import insert
 from unicodedata import category
 from datetime import datetime
@@ -170,6 +170,35 @@ async def get_operation_by_date(date: datetime):
         )
         return operations.scalars().all()
 
+async def get_total_operation_by_user_category(user_category_id: int):
+    async with async_session() as session:
+        result_uc = await session.execute(
+            select(UserCategory).where(UserCategory.id == user_category_id)
+        )
+        user_category = result_uc.scalar_one_or_none()
+        if not user_category:
+            return None
+
+        now = datetime.utcnow()
+
+        result = await session.execute(
+            select(func.sum(BankOperation.amount)).join(
+                BankAccount, BankAccount.id == BankOperation.account_id
+            ).where(
+                BankAccount.user_id == user_category.user_id,
+                BankOperation.category == user_category.category_id,
+                extract("year", BankOperation.create_at) == now.year,
+                extract("month", BankOperation.create_at) == now.month,
+                BankOperation.type == Type_Operation.EXPENSE
+            )
+        )
+
+        total = result.scalar()
+        if total is not None:
+            return total
+        else:
+            return 0
+
 async def update_operation(id: int, type: Type_Operation = None, amount: float = None, balance_after: float = None,
                            description: str = None, category: str = None):
     async with async_session() as session:
@@ -286,11 +315,12 @@ async def delete_user_category(user_id: int, category_id: int):
         await session.commit()
 
 
-async def upsert_budget(user_category_id: int, amount: float, year: int, month: int):
+async def upsert_budget(user_category_id: int, amount: float, spend: float, year: int, month: int):
     async with async_session() as session:
         stmt = insert(Budget).values(
             user_category_id=user_category_id,
             amount=amount,
+            spend=spend,
             year=year,
             month=month
         )
@@ -305,11 +335,12 @@ async def upsert_budget(user_category_id: int, amount: float, year: int, month: 
         await session.commit()
         return budget
 
-async def upsert_budget_for_update_new_month(user_category_id: int, amount: float, year: int, month: int):
+async def upsert_budget_for_update_new_month(user_category_id: int, amount: float, spend: float, year: int, month: int):
     async with async_session() as session:
         stmt = insert(Budget).values(
             user_category_id=user_category_id,
             amount=amount,
+            spend=spend,
             year=year,
             month=month
         )
