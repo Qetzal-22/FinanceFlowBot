@@ -15,6 +15,7 @@ from app.services import bank_account
 from app.services.bank_operation import create_operation
 from app.services.user import check_register, get_categories
 from app.services.bank_account import get_bank_accounts, update_account
+from app.domain.enums import EventOverflowBudget
 
 account_router_bot = Router()
 
@@ -117,12 +118,21 @@ async def get_description_transaction(message: Message, state: FSMContext):
     amount = data["amount"]
     if type_transaction == Type_Operation.EXPENSE:
         category = data["category"]
-        await create_operation(account_id, type_transaction, amount, description,  category)
+        event = await create_operation(account_id, type_transaction, amount, description,  category)
     else:
-        await create_operation(account_id, type_transaction, amount, description)
+        event = await create_operation(account_id, type_transaction, amount, description)
 
     await state.clear()
     await message.answer("✅ Операция успешно добавлена")
+
+    if event == EventOverflowBudget.NONE:
+        return
+    elif event == EventOverflowBudget.WARNING_80:
+        await message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
+    elif event == EventOverflowBudget.WARNING_90:
+        await message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
+    elif event == EventOverflowBudget.WARNING_100:
+        await message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
 
 @account_router_bot.message(F.text.lower() == "счета")
 async def main_menu_bank_account(message: Message):
