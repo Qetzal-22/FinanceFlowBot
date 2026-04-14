@@ -75,6 +75,7 @@ class Budget(Base):
     user_category_id = Column(Integer, ForeignKey("user_category.id"), nullable=False)
 
     amount = Column(Float, nullable=False)
+    spend = Column(Float, nullable=False)
 
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)
