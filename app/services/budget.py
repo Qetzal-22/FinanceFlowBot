@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from app.db import crud
+from app.domain.enums import EventOverflowBudget
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,18 @@ async def create_budget(user_category_id: int, amount: float):
         year,
         month
     )
+
+async def check_overflow_budget(total, spend):
+    precent = spend/total * 100
+    if precent >= 80 and precent < 90:
+        return EventOverflowBudget.WARNING_80
+    elif precent >= 90 and precent < 100:
+        return EventOverflowBudget.WARNING_90
+    elif precent >= 100:
+        return EventOverflowBudget.WARNING_100
+    else:
+        return EventOverflowBudget.NONE
+
 
 
 async def update_budget_new_month():
