@@ -190,9 +190,9 @@ async def budget(message: Message):
         budget = await get_budget_by_user_category_id_now(user_category.id)
         if budget is None:
             continue
-        text += f"\n{category.name} - {budget.amount}"
+        text += f"\n• {category.name}\n💸 <b>{budget.spend}</b> / {budget.amount}\n"
 
-    text += "\n\n━━━━━━━━━━━━━━━━━━"
+    text += "\n━━━━━━━━━━━━━━━━━━"
     await message.answer(text, parse_mode="HTML", reply_markup=await budget_menu_kb())
 
 
@@ -299,17 +299,68 @@ async def view_budget(message: Message):
     telegram_user_id = message.from_user.id
     categories_with_budget = await get_category_with_budget(telegram_user_id)
 
-    text = "<b>БЮДЖЕТЫ</b>\n━━━━━━━━━━━━━━━━━━\n"
+    def make_bar(spend, total, length=10):
+        if total == 0:
+            return "░" * length
+        filled = int((spend / total) * length)
+        filled = min(filled, length)
+        return "█" * filled + "░" * (length - filled)
+
+    text = "<b>📊 БЮДЖЕТЫ</b>\n"
+    text += "━━━━━━━━━━━━━━━━━━\n"
+    total_spend = 0
+    total_budget = 0
     for user_category in categories_with_budget:
         category = await crud.get_category(user_category.category_id)
         budget = await services.budget.get_budget_by_user_category_id_now(user_category.id)
-        text += f"{category.name}:    {budget.amount}\n"
+
+        spend = budget.spend
+        total = budget.amount
+
+        total_spend += spend
+        total_budget += total
+
+        percent = int((spend / total) * 100) if total else 0
+        bar = make_bar(spend, total)
+
+        # статус
+        if spend > total:
+            status = "🔴 ПЕРЕРАСХОД"
+        elif percent > 80:
+            status = "🟠 ПОЧТИ ЛИМИТ"
+        else:
+            status = "🟢 ОК"
+
+        text += (
+            f"<b>{category.name}</b>  {status}\n"
+            f"{bar} {percent}%\n"
+            f"💸 <b>{spend}</b> / {total}\n"
+        )
+
+        if spend > total:
+            text += "⚠️ Превышен бюджет!\n"
+
+        text += "\n"
+
+    percent = int((total_spend / total_budget) * 100) if total_budget else 0
+    bar = make_bar(total_spend, total_budget)
+
+    # статус
+    if total_spend > total_budget:
+        status = "🔴 ПЕРЕРАСХОД"
+    elif percent > 80:
+        status = "🟠 ПОЧТИ ЛИМИТ"
+    else:
+        status = "🟢 ОК"
+    text += (
+        f"<b>Общий бюджет</b>  {status}\n"
+        f"{bar} {percent}%\n"
+        f"💸 <b>{total_spend}</b> / {total_budget}\n"
+    )
 
     text += "━━━━━━━━━━━━━━━━━━"
 
     await message.answer(text, parse_mode="HTML")
-
-
 
 
 
