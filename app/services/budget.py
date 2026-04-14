@@ -52,3 +52,14 @@ async def update_budget_new_month():
 
     for budget_last_month in budgets_last_month:
         await create_budget(budget_last_month.user_category_id, budget_last_month.amount)
+
+async def remove_budget(user_category_id: int) -> None:
+    now = datetime.now()
+    year = now.year
+    month = now.month
+
+    user_category = await crud.get_user_category(user_category_id)
+    budget_id = (await crud.get_budget_by_user_category_id_to_date(year, month, user_category_id))[0].id
+    logger.info("remove budget budget_id=%s", budget_id)
+
+    await crud.delete_budget(budget_id)
