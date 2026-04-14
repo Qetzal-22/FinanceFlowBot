@@ -435,9 +435,16 @@ async def view_history_in_day(callback: CallbackQuery):
         else:
             text += "🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥\n"
 
+        if operation.category:
+            category_id = operation.category
+            category = await crud.get_category(category_id)
+            category_name = category.name
+        else:
+            category_name = "—"
+
         text += (
             f"💰 Сумма: {operation.amount}\n\n"
-            f"📂 Категория: {operation.category}\n"
+            f"📂 Категория: {category_name}\n"
             f"📝 Описание: {operation.description}\n\n"
             f"⏰ Время: {good_time}\n"
             f"━━━━━━━━━━━━━━━━━━"
