@@ -7,7 +7,7 @@ from app.db.models import Type_Operation, BankOperation
 
 logger = logging.getLogger(__name__)
 
-async def create_operation(account_id: int, type_operation: Type_Operation, amount: float, description: str, category: str = None):
+async def create_operation(account_id: int, type_operation: Type_Operation, amount: float, description: str, category: int = None):
     account = await crud.get_bank_account(account_id)
     balance = account.balance
     logger.info("create_operation balance=%s amount=%s type_operation=%s", balance, amount, type_operation)
