@@ -10,12 +10,12 @@ import logging
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
     categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb, \
-    user_category_for_budget_kb
+    user_category_for_budget_kb, budget_remove_kb
 from app.bot.static import AddCategory, CreateBudget
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
 from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category, \
-    get_user_categories_by_telegram_id, get_category
+    get_user_categories_by_telegram_id, get_category, get_category_with_budget
 from app.services.bank_account import get_bank_accounts
 from app.services.bank_operation import get_bank_operation_by_date
 from app.services.budget import get_budget_by_user_category_id_now
@@ -237,6 +237,19 @@ async def get_amount_for_create_budget(message: Message, state: FSMContext):
     category = await get_category(user_category.category_id)
     await message.answer(f"✅ Новый бюджет создан для категории {category.name}")
 
+@user_router_bot.message(F.text.lower() == "удалить бюджет")
+async def choose_remove_budget(message: Message):
+    telegram_user_id = message.from_user.id
+    category_with_budget = await get_category_with_budget(telegram_user_id)
+
+    await message.answer("Выберети категорию для удаления бюджета 👇", reply_markup=await budget_remove_kb(category_with_budget))
+
+@user_router_bot.callback_query(F.data.startswith("remove_budget"))
+async def remove_budget(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    user_category_id = int(callback.data.split(":")[1])
+    await services.budget.remove_budget(user_category_id)
+    await callback.message.answer("🗑️ Бюджет удален")
 
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
