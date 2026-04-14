@@ -145,7 +145,7 @@ async def budget_menu_kb():
     kb.adjust(2, 1)
     return kb.as_markup(resize_keyboard=True)
 
-async def budget_edit_menu_kb():
+async def budget_control_menu_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text="Изменить бюджет")
     kb.button(text="Удалить бюджет")
@@ -158,6 +158,14 @@ async def budget_remove_kb(user_categories: list[UserCategory]):
     for user_category in user_categories:
         category_name = (await get_category(user_category.category_id)).name
         kb.button(text=f"{category_name}", callback_data=f"remove_budget:{user_category.id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
+async def budget_edit_kb(user_categories: list[UserCategory]):
+    kb = InlineKeyboardBuilder()
+    for user_category in user_categories:
+        category_name = (await get_category(user_category.category_id)).name
+        kb.button(text=f"{category_name}", callback_data=f"edit_budget:{user_category.id}")
     kb.adjust(1)
     return kb.as_markup()
 
