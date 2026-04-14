@@ -10,8 +10,8 @@ import logging
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
     categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb, \
-    user_category_for_budget_kb, budget_remove_kb
-from app.bot.static import AddCategory, CreateBudget
+    user_category_for_budget_kb, budget_remove_kb, budget_control_menu_kb, budget_edit_kb
+from app.bot.static import AddCategory, CreateBudget, EditBudget
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
 from app.services.user import create_user, check_register, get_categories, create_user_category, create_category, delete_category, \
@@ -237,12 +237,53 @@ async def get_amount_for_create_budget(message: Message, state: FSMContext):
     category = await get_category(user_category.category_id)
     await message.answer(f"✅ Новый бюджет создан для категории {category.name}")
 
+@user_router_bot.message(F.text.lower() == "управление бюджетами")
+async def control_budgets(message: Message):
+    await message.answer("⚙️ Управление категориями: ", reply_markup=await budget_control_menu_kb())
+
+@user_router_bot.message(F.text.lower() == "изменить бюджет")
+async def choose_edit_budget(message: Message):
+    telegram_user_id = message.from_user.id
+    category_with_budget = await get_category_with_budget(telegram_user_id)
+
+    await message.answer("Выберете категорию для редактирования бюджета 👇", reply_markup=await budget_edit_kb(category_with_budget))
+
+
+@user_router_bot.callback_query(F.data.startswith("edit_budget"))
+async def edit_budget(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    user_category_id = int(callback.data.split(":")[1])
+    await state.update_data(user_category_id=user_category_id)
+    await state.set_state(EditBudget.amount)
+    await callback.message.answer("✏️ Введите сумму нового бюджета: ")
+
+
+@user_router_bot.message(EditBudget.amount)
+async def get_amount_edit_budget(message: Message, state: FSMContext):
+    amount = message.text
+    if not amount.isdigit():
+        await state.set_state(EditBudget.amount)
+        await message.answer("❌ Вы ввели неверный формат данных. Сумма бюджета должна быть числом.")
+        await message.answer("🔄 Попробуйсе еще раз:")
+        return
+    amount = float(amount)
+    data = await state.get_data()
+    user_category_id = data["user_category_id"]
+
+    await services.budget.edit_budget(user_category_id, amount)
+    await state.clear()
+    category = await crud.get_category(user_category_id)
+    await message.answer(f"✅ Бюджет {category.name} отредактирован!")
+
+
+
+
 @user_router_bot.message(F.text.lower() == "удалить бюджет")
 async def choose_remove_budget(message: Message):
     telegram_user_id = message.from_user.id
     category_with_budget = await get_category_with_budget(telegram_user_id)
 
-    await message.answer("Выберети категорию для удаления бюджета 👇", reply_markup=await budget_remove_kb(category_with_budget))
+    await message.answer("Выберете категорию для удаления бюджета 👇", reply_markup=await budget_remove_kb(category_with_budget))
 
 @user_router_bot.callback_query(F.data.startswith("remove_budget"))
 async def remove_budget(callback: CallbackQuery, state: FSMContext):
