@@ -344,11 +344,16 @@ async def get_budget_to_date(year: int, month: int):
         )
         return budgets.scalars().all()
 
-async def edit_budget(budget_id: int, amount: int):
+async def edit_budget(budget_id: int, amount: float):
     async with async_session() as session:
         budget = await session.execute(
             select(Budget).where(Budget.id == budget_id)
         )
+        budget = budget.scalar_one_or_none()
+
+        if not budget:
+            return None
+
         budget.amount = amount
         await session.commit()
         await session.refresh(budget)
