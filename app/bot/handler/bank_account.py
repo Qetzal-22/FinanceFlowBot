@@ -101,7 +101,7 @@ async def get_amount_transaction(message: Message, state: FSMContext):
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
 async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    category = callback.data.split(":")[1]
+    category = int(callback.data.split(":")[1])
     logger.info("get_category_transaction category=%s", category)
     await state.update_data(category=category)
 
