@@ -119,6 +119,7 @@ async def history_kb():
     kb.button(text="Календарь", callback_data="history_calendar")
     kb.button(text="Последние 7 дней", callback_data="history_7")
     kb.button(text="Последние 30 дней", callback_data="history_30")
+    kb.adjust(1)
     return kb.as_markup()
 
 async def kalendar_kb(date_now: datetime, count_day: int):
@@ -137,6 +138,7 @@ async def kalendar_kb(date_now: datetime, count_day: int):
 
 async def budget_menu_kb():
     kb = ReplyKeyboardBuilder()
+    kb.button(text="Мои бюджеты")
     kb.button(text="Создать бюджет")
     kb.button(text="Управление бюджетами")
     kb.button(text="Назад в меню")
@@ -150,6 +152,14 @@ async def budget_edit_menu_kb():
     kb.button(text="Назад в меню")
     kb.adjust(2, 1)
     return kb.as_markup(resize_keyboard=True)
+
+async def budget_remove_kb(user_categories: list[UserCategory]):
+    kb = InlineKeyboardBuilder()
+    for user_category in user_categories:
+        category_name = (await get_category(user_category.category_id)).name
+        kb.button(text=f"{category_name}", callback_data=f"remove_budget:{user_category.id}")
+    kb.adjust(1)
+    return kb.as_markup()
 
 # async def change_budget(budgets, mod):
 #     kb = InlineKeyboardBuilder()
