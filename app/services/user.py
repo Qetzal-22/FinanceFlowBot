@@ -1,6 +1,7 @@
 from app.db import crud
 import logging
-
+from datetime import datetime
+from app.db.models import UserCategory
 
 logger = logging.getLogger(__name__)
 
@@ -68,3 +69,25 @@ async def get_category(category_id: int):
     category = await crud.get_category(category_id)
     logger.info("DB successful response get category category_id=%s", category_id)
     return category
+
+async def get_category_with_budget(telegram_user_id: int) -> list[UserCategory]:
+    user_id = (await crud.get_user_by_telegram_id(telegram_user_id)).id
+
+    now = datetime.now()
+    year = now.year
+    month = now.month
+
+    logger.info("DB request get category_with_budget telegram_user_id=%s", telegram_user_id)
+    user_categories = await crud.get_user_categories_by_user_id(user_id)
+
+    categories_with_budget = []
+
+    for user_category in user_categories:
+
+        user_category_id = user_category.id
+        budget = await crud.get_budget_by_user_category_id_to_date(year, month, user_category_id)
+
+        if budget:
+            categories_with_budget.append(user_category)
+
+    return categories_with_budget
