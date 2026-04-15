@@ -29,6 +29,8 @@ class BankAccount(Base):
     name = Column(String)
     balance = Column(Float, default=0.0)
 
+    is_default = Column(Boolean, nullable=False)
+
     create_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -68,6 +70,15 @@ class UserCategory(Base):
     category = relationship("Category", back_populates="user_categories")
     budgets = relationship("Budget", back_populates="user_category")
 
+class CategoryAliases(Base):
+    __tablename__ = "category_aliases"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"))
+
+    key_word = Column(String, nullable=False)
+
+    create_at = Column(DateTime, default=datetime.utcnow)
 
 class Budget(Base):
     __tablename__ = "budgets"
