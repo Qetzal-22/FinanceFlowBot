@@ -6,15 +6,16 @@ import logging
 from app.bot.handler.user import main_menu, category, back_to_menu
 from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb, \
     category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb, choose_account_kb, control_account_kb, \
-    confirmation_remove_kb
+    confirmation_remove_kb, more_for_operation_kb
 from app.bot.static import CreateBankAccount, CreateTransaction, RenameAccount
 from app.db import crud
 from app.db.crud import delete_bank_account
 from app.db.models import Type_Operation
-from app.services import bank_account
-from app.services.bank_operation import create_operation
-from app.services.user import check_register, get_categories
+from app.services import bank_account, bank_operation
+from app.services.bank_operation import create_operation, delete_operation
+from app.services.user import check_register, get_categories, get_user_id
 from app.services.bank_account import get_bank_accounts, update_account, set_default
+from app.services.category_aliases import get_category_by_key_word_and_user_id, create_category_aliases
 from app.domain.enums import EventOverflowBudget
 
 account_router_bot = Router()
@@ -49,86 +50,107 @@ async def get_name_account(message: Message, state: FSMContext):
     await main_menu(message)
 
 @account_router_bot.message(F.text.lower() == "добавить операцию")
-async def record_transaction(message: Message):
+async def record_transaction(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
     check_user = await check_register(telegram_user_id)
     if not check_user:
         await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
         return
 
-    accounts = await get_bank_accounts(telegram_user_id)
-    await message.answer("Выберите счёт для операции 👇", reply_markup=await choose_account_for_transaction_kb(accounts))
+    text = """
+    Введи <b>сумму</b> 💸  
+Можно сразу с <b>категорией</b>:
 
-@account_router_bot.callback_query(F.data.startswith("transaction_account"))
-async def create_transaction(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    account_id = int(callback.data.split(":")[1])
+Примеры:
+300 еда  
+-1500 такси
 
-    await state.update_data(account_id=account_id)
-
-    await callback.message.answer("Выберите тип операции 👇", reply_markup=await choose_type_transaction_kb())
-
-@account_router_bot.callback_query(F.data.startswith("type_transaction"))
-async def get_type_transaction(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    telegram_user_id = callback.from_user.id
-    type_operation = Type_Operation(callback.data.split(":")[1])
-
-    await state.update_data(type=type_operation)
+Если категорию не указать — <b>выберешь дальше</b> 👇"""
     await state.set_state(CreateTransaction.amount)
 
-    await callback.message.answer("💰 Введите сумму:")
+    await message.answer(text, parse_mode="HTML")
 
 @account_router_bot.message(CreateTransaction.amount)
-async def get_amount_transaction(message: Message, state: FSMContext):
+async def create_transaction(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
-    amount = message.text
-
-    if not amount.isdigit():
-        await message.answer("❗ Сумма должна быть числом")
-        await state.set_state(CreateTransaction.amount)
-        await message.answer("💰 Введите сумму:")
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
         return
 
-    amount = float(amount)
-    await state.update_data(amount=amount)
+    user_id = await get_user_id(telegram_user_id)
 
-    data = await state.get_data()
-    type_transaction = data["type"]
+    message_text = message.text
+    message_text = message_text.split()
 
-    if type_transaction == Type_Operation.EXPENSE:
-        categories = await get_categories(telegram_user_id)
+    amount = message_text[0]
+    logger.info("create transaction amount=%s", amount)
+    if not amount.replace("-", "").isdigit():
+        await message.answer("❗ Сумма должна быть числом")
+        await state.set_state(CreateTransaction.amount)
+        await message.answer("🔄 Попробуйсе еще раз:")
+        return
+    elif float(amount.replace("-", "")) == 0:
+        await message.answer("❗ Сумма должна быть 0")
+        await state.set_state(CreateTransaction.amount)
+        await message.answer("🔄 Попробуйсе еще раз:")
+        return
 
-        await message.answer("Выберите категорию 👇", reply_markup=await category_for_transaction_kb(categories))
+    logger.info("create transaction amount=%s", amount)
+    if "-" in amount:
+        amount = float(amount)
+
     else:
-        await message.answer("✏️ Введите описание операции:")
-        await state.set_state(CreateTransaction.description)
+        amount = float(amount)
+    logger.info("create transaction last transfor in float amount=%s", amount)
+
+    type_operation = Type_Operation.INCOME if amount > 0 else Type_Operation.EXPENSE
+    await state.update_data(amount=amount)
+    await state.update_data(type_operation=type_operation)
+    await state.update_data(key_word=None)
+
+    if len(message_text) == 1:
+        if amount > 0:
+            result = await create_operation(user_id, type_operation, amount)
+            operation = result[0]
+            await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+        else:
+            categories = await get_categories(telegram_user_id)
+            await message.answer("Выберите категорию 👇", reply_markup=await category_for_transaction_kb(categories))
+
+    else:
+        key_word = " ".join(message_text[1:])
+        category = await get_category_by_key_word_and_user_id(user_id, key_word)
+        if not category:
+            categories = await get_categories(telegram_user_id)
+            await state.update_data(key_word=key_word)
+            await message.answer("Выберите категорию 👇", reply_markup=await category_for_transaction_kb(categories))
+        else:
+            result = await create_operation(user_id, type_operation, amount, category.id)
+            operation = result[0]
+            await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+
 
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
 async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    category = int(callback.data.split(":")[1])
-    logger.info("get_category_transaction category=%s", category)
-    await state.update_data(category=category)
+    telegram_user_id = callback.from_user.id
+    user_id = await get_user_id(telegram_user_id)
+    category_id = int(callback.data.split(":")[1])
+    logger.info("get_category_transaction category_id=%s", category_id)
 
-    await callback.message.answer("✏️ Введите описание операции:")
-    await state.set_state(CreateTransaction.description)
-
-@account_router_bot.message(CreateTransaction.description)
-async def get_description_transaction(message: Message, state: FSMContext):
-    description = message.text
     data = await state.get_data()
-    account_id = data["account_id"]
-    type_transaction = data["type"]
     amount = data["amount"]
-    if type_transaction == Type_Operation.EXPENSE:
-        category = data["category"]
-        event = await create_operation(account_id, type_transaction, amount, description,  category)
-    else:
-        event = await create_operation(account_id, type_transaction, amount, description)
+    type_operation = data["type_operation"]
+    key_word = data["key_word"]
 
-    await state.clear()
-    await message.answer("✅ Операция успешно добавлена")
+    result = await create_operation(user_id, type_operation, amount, category_id)
+    operation = result[0]
+    event = result[1]
+    await callback.message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+
+    if key_word:
+        await create_category_aliases(user_id, category_id, key_word)
 
     if event == EventOverflowBudget.NONE:
         return
@@ -138,6 +160,32 @@ async def get_description_transaction(message: Message, state: FSMContext):
         await message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
     elif event == EventOverflowBudget.WARNING_100:
         await message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
+
+
+@account_router_bot.callback_query(F.data.startswith("description_operation"))
+async def add_description_for_operation(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    operation_id = int(callback.data.split(":")[1])
+    await state.update_data(operation_id=operation_id)
+    await state.set_state(CreateTransaction.description)
+    await callback.message.answer("✏️ Введите описание к операции:")
+
+@account_router_bot.message(CreateTransaction.description)
+async def get_description_transaction(message: Message, state: FSMContext):
+    description = message.text
+    data = await state.get_data()
+    operation_id = data["operation_id"]
+
+    await state.clear()
+    await bank_operation.add_description_for_operation(operation_id, description)
+    await message.answer("✅ Описание добавлено")
+
+@account_router_bot.callback_query(F.data.startswith("undo_operation"))
+async def undo_for_operation(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    operation_id = int(callback.data.split(":")[1])
+    await delete_operation(operation_id)
+    await callback.message.answer("🗑️ Операция отменена")
 
 @account_router_bot.message(F.text.lower() == "счета")
 async def main_menu_bank_account(message: Message):
