@@ -170,7 +170,9 @@ async def budget_edit_kb(user_categories: list[UserCategory]):
     kb.adjust(1)
     return kb.as_markup()
 
-# async def change_budget(budgets, mod):
-#     kb = InlineKeyboardBuilder()
-#     for budget in budgets:
-#         kb.button(text=f"{budget.name}", callback=f"budget_{mod}:{category.id}")
+async def more_for_operation_kb(operation_id: int):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✏️ Описание", callback_data=f"description_operation:{operation_id}")
+    kb.button(text="🔄 Отменить", callback_data=f"undo_operation:{operation_id}")
+    kb.adjust(1)
+    return kb.as_markup()
