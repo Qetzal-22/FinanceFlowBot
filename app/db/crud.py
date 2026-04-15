@@ -64,9 +64,9 @@ async def update_user_is_active(id: int, is_active: bool):
         return user
 
 
-async def create_bank_account(user_id: int, name: str):
+async def create_bank_account(user_id: int, name: str, is_default: bool):
     async with async_session() as session:
-        account = BankAccount(user_id=user_id, name=name)
+        account = BankAccount(user_id=user_id, name=name, is_default=is_default)
         session.add(account)
 
         await session.commit()
@@ -100,7 +100,7 @@ async def get_bank_accounts_by_telegram_id(telegram_user_id: int):
     return accounts.scalars().all()
 
 
-async def update_bank_account(id: int, name: str = None, balance: float = None):
+async def update_bank_account(id: int, name: str = None, balance: float = None, is_default: bool = None):
     async with async_session() as session:
         result = await session.execute(
             select(BankAccount).where(BankAccount.id == id)
@@ -114,6 +114,9 @@ async def update_bank_account(id: int, name: str = None, balance: float = None):
 
         if balance:
             account.balance = balance
+
+        if is_default:
+            account.is_default = is_default
 
         await session.commit()
         await session.refresh(account)
