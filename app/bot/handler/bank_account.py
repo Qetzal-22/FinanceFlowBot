@@ -51,6 +51,11 @@ async def get_name_account(message: Message, state: FSMContext):
 @account_router_bot.message(F.text.lower() == "добавить операцию")
 async def record_transaction(message: Message):
     telegram_user_id = message.from_user.id
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
+        return
+
     accounts = await get_bank_accounts(telegram_user_id)
     await message.answer("Выберите счёт для операции 👇", reply_markup=await choose_account_for_transaction_kb(accounts))
 
@@ -137,6 +142,11 @@ async def get_description_transaction(message: Message, state: FSMContext):
 @account_router_bot.message(F.text.lower() == "счета")
 async def main_menu_bank_account(message: Message):
     telegram_user_id = message.from_user.id
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
+        return
+
     accounts = await get_bank_accounts(telegram_user_id)
     logger.info("View account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
 
@@ -160,6 +170,11 @@ async def main_menu_bank_account(message: Message):
 @account_router_bot.message(F.text.lower() == "управление счетами")
 async def choose_account_for_edit(message: Message):
     telegram_user_id = message.from_user.id
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
+        return
+
     accounts = await get_bank_accounts(telegram_user_id)
     await message.answer("Выберите счёт для редактирования 👇", reply_markup=await choose_account_kb(accounts))
 
@@ -173,6 +188,12 @@ async def edit_account_main_menu(callback: CallbackQuery, state: FSMContext):
 
 @account_router_bot.message(F.text.lower() == "переименовать")
 async def rename_account(message: Message, state: FSMContext):
+    telegram_user_id = message.from_user.id
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
+        return
+
     await message.answer("✏️ Введите новое название:")
     await state.set_state(RenameAccount.name)
 
@@ -189,6 +210,12 @@ async def get_new_name(message: Message, state: FSMContext):
 
 @account_router_bot.message(F.text.lower() == "удалить счёт")
 async def confirmation_remove(message: Message):
+    telegram_user_id = message.from_user.id
+    check_user = await check_register(telegram_user_id)
+    if not check_user:
+        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
+        return
+    
     await message.answer("❗ Вы уверены, что хотите удалить счёт?", reply_markup=await confirmation_remove_kb())
 
 @account_router_bot.callback_query(F.data.startswith("conf_remove_account"))
