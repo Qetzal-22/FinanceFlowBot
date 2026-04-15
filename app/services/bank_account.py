@@ -33,3 +33,20 @@ async def delete_account(account_id: int):
     logger.info("DB request delete account account_id=%s", account_id)
     await crud.delete_bank_account(account_id)
     logger.info("DB successful response delete account account_id=%s", account_id)
+
+
+async def set_default(account_id: int):
+    logger.info("DB request get account account_id=%s", account_id)
+    account = await crud.get_bank_account(account_id)
+    logger.info("DB successful response get account account_id=%s", account_id)
+    user = account.user
+    accounts = await crud.get_bank_accounts_by_user_id(user.id)
+
+    for a in accounts:
+        logger.info("DB request update account account_id=%s", a.id)
+        await crud.update_bank_account(a.id, is_default=False)
+        logger.info("DB successful response update account account_id=%s", a.id)
+
+    logger.info("DB request update account account_id=%s", account_id)
+    await crud.update_bank_account(account_id, is_default=True)
+    logger.info("DB successful response update account account_id=%s", account_id)
