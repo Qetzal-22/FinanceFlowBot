@@ -80,8 +80,9 @@ async def choose_account_for_transaction_kb(accounts: list[BankAccount]):
     kb.adjust(1)
     return kb.as_markup()
 
-async def edit_account_kb():
+async def control_account_kb():
     kb = ReplyKeyboardBuilder()
+    kb.button(text="Сделать по умолчанию")
     kb.button(text="Переименовать")
     kb.button(text="Удалить счёт")
     kb.button(text="Назад в меню")
