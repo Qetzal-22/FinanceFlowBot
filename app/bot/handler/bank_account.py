@@ -5,7 +5,7 @@ import logging
 
 from app.bot.handler.user import main_menu, category, back_to_menu
 from app.bot.keyboard import register_kb, choose_account_for_transaction_kb, choose_type_transaction_kb, \
-    category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb, choose_account_kb, edit_account_kb, \
+    category_for_transaction_kb, main_bank_account_kb, create_bank_account_kb, choose_account_kb, control_account_kb, \
     confirmation_remove_kb
 from app.bot.static import CreateBankAccount, CreateTransaction, RenameAccount
 from app.db import crud
@@ -14,7 +14,7 @@ from app.db.models import Type_Operation
 from app.services import bank_account
 from app.services.bank_operation import create_operation
 from app.services.user import check_register, get_categories
-from app.services.bank_account import get_bank_accounts, update_account
+from app.services.bank_account import get_bank_accounts, update_account, set_default
 from app.domain.enums import EventOverflowBudget
 
 account_router_bot = Router()
@@ -183,8 +183,16 @@ async def edit_account_main_menu(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     account_id = int(callback.data.split(":")[1])
     await state.update_data(account_id=account_id)
-    await callback.message.answer("⚙️ Управление счётом:", reply_markup=await edit_account_kb())
+    await callback.message.answer("⚙️ Управление счётом:", reply_markup=await control_account_kb())
 
+@account_router_bot.message(F.text.lower() == "сделать по умолчанию")
+async def bank_account_set_default(message: Message, state: FSMContext):
+    data = await state.get_data()
+    account_id = data["account_id"]
+    await set_default(account_id)
+
+    account = await crud.get_bank_account(account_id)
+    await message.answer(f"✅ Счет {account.name} установлен как по умолчанию")
 
 @account_router_bot.message(F.text.lower() == "переименовать")
 async def rename_account(message: Message, state: FSMContext):
@@ -215,7 +223,7 @@ async def confirmation_remove(message: Message):
     if not check_user:
         await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
         return
-    
+
     await message.answer("❗ Вы уверены, что хотите удалить счёт?", reply_markup=await confirmation_remove_kb())
 
 @account_router_bot.callback_query(F.data.startswith("conf_remove_account"))
