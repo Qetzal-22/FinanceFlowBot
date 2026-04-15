@@ -31,6 +31,12 @@ async def get_categories(telegram_user_id):
     logger.info("DB successful response get categoty telegram_user_id=%s", telegram_user_id)
     return categories
 
+async def get_user_id(telegram_user_id: int):
+    logger.info("DB request get user telegram_user_id=%s", telegram_user_id)
+    user = await crud.get_user_by_telegram_id(telegram_user_id)
+    logger.info("DB successful response get user telegram_user_id=%s", telegram_user_id)
+    return user.id
+
 async def create_user_category(telegram_user_id, category_id):
     logger.info("DB request get user telegram_user_id=%s", telegram_user_id)
     user = await crud.get_user_by_telegram_id(telegram_user_id)
