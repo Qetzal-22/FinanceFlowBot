@@ -4,7 +4,8 @@ from sqlalchemy.dialects.postgresql import insert
 from unicodedata import category
 from datetime import datetime
 
-from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory, Budget
+from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory, Budget, \
+    CategoryAliases
 from app.db.database import async_session
 
 import asyncio
@@ -107,6 +108,13 @@ async def get_bank_accounts_by_user_id(user_id: int):
 
         return accounts.scalars().all()
 
+async def get_default_bank_account_by_user_id(user_id: int):
+    async with async_session() as session:
+        account = await session.execute(
+            select(BankAccount).options(selectinload(BankAccount.user)).where(BankAccount.user_id == user_id, BankAccount.is_default == True)
+        )
+
+        return account.scalar_one_or_none()
 
 async def update_bank_account(id: int, name: str = None, balance: float = None, is_default: bool = None):
     async with async_session() as session:
@@ -143,12 +151,10 @@ async def create_bank_operation(
         type: Type_Operation,
         amount: float,
         balance_after: float,
-        description: str,
         category: int
 ):
     async with async_session() as session:
-        operation = BankOperation(account_id=account_id, type=type, amount=amount, balance_after=balance_after, description=description,
-                                  category=category)
+        operation = BankOperation(account_id=account_id, type=type, amount=amount, balance_after=balance_after, category=category)
 
         session.add(operation)
         await session.commit()
@@ -241,6 +247,13 @@ async def update_operation(id: int, type: Type_Operation = None, amount: float =
         await session.refresh(operation)
         return operation
 
+
+async def delete_bank_operation(id: int):
+    async with async_session() as session:
+        await session.execute(
+            delete(BankOperation).where(BankOperation.id == id)
+        )
+        await session.commit()
 
 async def create_category(name: str):
     async with async_session() as session:
@@ -430,3 +443,20 @@ async def delete_budget(budget_id: int):
             delete(Budget).where(Budget.id == budget_id)
         )
         await session.commit()
+
+
+async def create_category_aliases(user_id: int, category_id: int, key_word: str):
+    async with async_session() as session:
+        category_aliases = CategoryAliases(user_id=user_id, category_id=category_id, key_word=key_word)
+        session.add(category_aliases)
+        await session.commit()
+        await session.refresh(category_aliases)
+        return category_aliases
+
+async def get_category_aliases_by_key_word_and_user_id(user_id: int, key_word: str):
+    async with async_session() as session:
+        category_aliases = await session.execute(
+            select(CategoryAliases).where(CategoryAliases.key_word == key_word, CategoryAliases.user_id == user_id)
+        )
+
+        return category_aliases.scalar_one_or_none()
