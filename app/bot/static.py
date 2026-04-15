@@ -9,6 +9,8 @@ class CreateTransaction(StatesGroup):
     amount = State()
     description = State()
     category = State()
+    key_word = State()
+    operation_id = State()
 
 class AddCategory(StatesGroup):
     name = State()
