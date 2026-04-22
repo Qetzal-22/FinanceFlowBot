@@ -14,6 +14,9 @@ setup_logging()
 async def set_commands(bot: Bot):
     command = [
         BotCommand(command="/start", description="Start bot"),
+        BotCommand(command="/main", description="Main menu"),
+        BotCommand(command="/finance", description="Show finance"),
+        BotCommand(command="/budget", description="Show budget"),
         BotCommand(command="/help", description="Bot Info")
     ]
     await bot.set_my_commands(command)
