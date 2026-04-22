@@ -45,6 +45,34 @@ async def command_help(message: Message):
 """
     await message.answer(text, parse_mode="HTML")
 
+
+@user_router_bot.message(Command("finance"))
+async def command_finance(message: Message):
+    telegram_user_id = message.from_user.id
+    accounts = await get_bank_accounts(telegram_user_id)
+
+    text = "<b>БАНКОВСКИЕ СЧЕТА</b>\n━━━━━━━━━━━━━━━━━━\n"
+
+    if len(accounts) == 0:
+        text += "У вас пока нет счетов\n━━━━━━━━━━━━━━━━━━\n"
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+        await message.answer("➕ Создайте счёт 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
+
+    else:
+        for account in accounts:
+            account_name = account.name
+            account_balance = account.balance
+            text += f"\n<b>{account_name}</b>\nБаланс: {account_balance}\n"
+        text += "━━━━━━━━━━━━━━━━━━"
+
+        await message.answer(text, parse_mode="HTML", reply_markup=await main_bank_account_kb())
+
+
+@user_router_bot.message(Command("budget"))
+async def command_budget(message: Message):
+    await view_budget(message)
+
+
 @user_router_bot.message(Command("register"))
 async def command_register(message: Message):
     text = """
