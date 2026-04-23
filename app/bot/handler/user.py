@@ -37,6 +37,8 @@ async def command_start(message: Message):
 
 @user_router_bot.message(Command("help"))
 async def command_help(message: Message):
+    telegram_user_id = message.from_user.id
+
     text = """
 ℹ️ <b>Помощь</b>
 
@@ -49,6 +51,7 @@ async def command_help(message: Message):
 @user_router_bot.message(Command("finance"))
 async def command_finance(message: Message):
     telegram_user_id = message.from_user.id
+
     accounts = await get_bank_accounts(telegram_user_id)
 
     text = "<b>БАНКОВСКИЕ СЧЕТА</b>\n━━━━━━━━━━━━━━━━━━\n"
@@ -70,6 +73,8 @@ async def command_finance(message: Message):
 
 @user_router_bot.message(Command("budget"))
 async def command_budget(message: Message):
+    telegram_user_id = message.from_user.id
+
     await view_budget(message)
 
 
@@ -111,50 +116,17 @@ async def welcome_message(message: Message):
 
 @user_router_bot.message(Command("main"))
 async def main_menu(message: Message, telegram_user_id: int = None):
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
-
     await message.answer("📋 Главное меню:", reply_markup=await main_menu_kb())
 
 @user_router_bot.message(F.text.lower() == "назад в меню")
 async def back_to_menu(message: Message):
     return await main_menu(message)
 
-# @user_router_bot.message(F.text.lower() == "профиль")
-# async def view_profile(message: Message):
-#     telegram_user_id = message.from_user.id
-#     accounts = await get_bank_accounts(telegram_user_id)
-#     logger.info("view account get accounts telegram_user_id=%s length_accounts=%s", telegram_user_id, len(accounts))
-#
-#     text = "👤 <b>ПРОФИЛЬ</b>\n━━━━━━━━━━━━━━━━━━\n"
-#
-#     if len(accounts) == 0:
-#         text += "У вас пока нет банковских счетов\n━━━━━━━━━━━━━━━━━━\n"
-#         await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
-#         await message.answer("➕ Создайте свой первый счёт 👇", parse_mode="HTML", reply_markup=await create_bank_account_kb())
-#
-#     else:
-#         for account in accounts:
-#             account_name = account.name
-#             account_balance = account.balance
-#             text += f"\n<b>{account_name}</b>\nБаланс: {account_balance}\n"
-#         text += "━━━━━━━━━━━━━━━━━━"
-#
-#         await message.answer(text, parse_mode="HTML", reply_markup=await profile_kb())
 
 @user_router_bot.message(F.text.lower() == "категории")
 async def category(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
+
     categories = await get_categories(telegram_user_id)
 
     text = "<b>КАТЕГОРИИ</b>\n━━━━━━━━━━━━━━━━━━\n"
@@ -173,13 +145,13 @@ async def category(message: Message):
 @user_router_bot.callback_query(F.data.startswith("category_add"))
 async def add_category_callback(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     return await add_category(callback.message, state)
 
 @user_router_bot.message(F.text.lower() == "добавить категорию")
 async def add_category(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
     check_user = await check_register(telegram_user_id)
     if not check_user:
         await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
@@ -192,6 +164,7 @@ async def add_category(message: Message, state: FSMContext):
 async def get_category_name(message: Message, state: FSMContext):
     await state.clear()
     telegram_user_id = message.from_user.id
+
     name = message.text
     category_all = await crud.get_categories_all()
     for category in category_all:
@@ -208,13 +181,6 @@ async def get_category_name(message: Message, state: FSMContext):
 @user_router_bot.message(F.text.lower() == "удалить категорию")
 async def remove_category(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
-
 
     categories = await get_categories(telegram_user_id)
     await message.answer("Выберите категорию для удаления 👇", reply_markup=await categories_kb(categories))
@@ -223,6 +189,7 @@ async def remove_category(message: Message):
 async def get_category_for_rm(callback: CallbackQuery):
     await callback.answer()
     telegram_user_id = callback.from_user.id
+
     category_id = int(callback.data.split(":")[1])
 
     await delete_category(telegram_user_id, category_id)
@@ -231,12 +198,6 @@ async def get_category_for_rm(callback: CallbackQuery):
 @user_router_bot.message(F.text.lower() == "бюджеты")
 async def budget(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     user_categories = await get_user_categories_by_telegram_id(telegram_user_id)
     logger.info("budget length_user_categories=%s", len(user_categories))
@@ -256,12 +217,6 @@ async def budget(message: Message):
 @user_router_bot.message(F.text.lower() == "создать бюджет")
 async def create_budget(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     user_categories = await get_user_categories_by_telegram_id(telegram_user_id)
     await message.answer("Выбери для какой категории нужно установить бюджет 👇", reply_markup=await user_category_for_budget_kb(user_categories))
@@ -269,6 +224,8 @@ async def create_budget(message: Message):
 @user_router_bot.callback_query(F.data.startswith("budget_category"))
 async def get_category_for_create_budget(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     user_category_id = int(callback.data.split(":")[1])
     await state.update_data(user_category_id=user_category_id)
 
@@ -281,6 +238,8 @@ async def get_category_for_create_budget(callback: CallbackQuery, state: FSMCont
 
 @user_router_bot.message(CreateBudget.amount)
 async def get_amount_for_create_budget(message: Message, state: FSMContext):
+    telegram_user_id = message.from_user.id
+
     amount_res = message.text
     if not amount_res.isdigit():
         await message.answer("❌ Вы ввели неверный формат данных. Сумма бюджета должна быть числом.")
@@ -304,25 +263,12 @@ async def get_amount_for_create_budget(message: Message, state: FSMContext):
 @user_router_bot.message(F.text.lower() == "управление бюджетами")
 async def control_budgets(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     await message.answer("⚙️ Управление категориями: ", reply_markup=await budget_control_menu_kb())
 
 @user_router_bot.message(F.text.lower() == "изменить бюджет")
 async def choose_edit_budget(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
-
 
     category_with_budget = await get_category_with_budget(telegram_user_id)
 
@@ -332,6 +278,8 @@ async def choose_edit_budget(message: Message):
 @user_router_bot.callback_query(F.data.startswith("edit_budget"))
 async def edit_budget(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     user_category_id = int(callback.data.split(":")[1])
     await state.update_data(user_category_id=user_category_id)
     await state.set_state(EditBudget.amount)
@@ -340,6 +288,8 @@ async def edit_budget(callback: CallbackQuery, state: FSMContext):
 
 @user_router_bot.message(EditBudget.amount)
 async def get_amount_edit_budget(message: Message, state: FSMContext):
+    telegram_user_id = message.from_user.id
+
     amount = message.text
     if not amount.isdigit():
         await state.set_state(EditBudget.amount)
@@ -361,12 +311,6 @@ async def get_amount_edit_budget(message: Message, state: FSMContext):
 @user_router_bot.message(F.text.lower() == "удалить бюджет")
 async def choose_remove_budget(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     category_with_budget = await get_category_with_budget(telegram_user_id)
 
@@ -375,6 +319,8 @@ async def choose_remove_budget(message: Message):
 @user_router_bot.callback_query(F.data.startswith("remove_budget"))
 async def remove_budget(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     user_category_id = int(callback.data.split(":")[1])
     await services.budget.remove_budget(user_category_id)
     await callback.message.answer("🗑️ Бюджет удален")
@@ -384,12 +330,6 @@ async def remove_budget(callback: CallbackQuery, state: FSMContext):
 @user_router_bot.message(F.text.lower() == "мои бюджеты")
 async def view_budget(message: Message):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     categories_with_budget = await get_category_with_budget(telegram_user_id)
 
@@ -461,12 +401,6 @@ async def view_budget(message: Message):
 @user_router_bot.message(F.text.lower() == "история")
 async def history(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
-    if not telegram_user_id:
-        telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
 
     await message.answer("Выберети нужную опцию 👇", reply_markup=await history_kb())
 
@@ -474,6 +408,8 @@ async def history(message: Message, state: FSMContext):
 @user_router_bot.callback_query(F.data.startswith("history_calendar"))
 async def calendar(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     date_now = datetime.utcnow()
     count_days = await count_day_in_month(date_now)
 
@@ -487,16 +423,22 @@ async def calendar(callback: CallbackQuery, state: FSMContext):
 @user_router_bot.callback_query(F.data.startswith("history_7"))
 async def history_7(callback: CallbackQuery):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     await callback.message.answer("⚠️Еще не готово (history_7)⚠️")
 
 @user_router_bot.callback_query(F.data.startswith("history_30"))
 async def history_30(callback: CallbackQuery):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     await callback.message.answer("⚠️Еще не готово (history_30)⚠️")
 
 @user_router_bot.callback_query(F.data.startswith("kalendar_move"))
 async def calendar_move(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     callback_data = callback.data.split(":")[1]
     new_year = int(callback_data.split("_")[0])
     new_month = int(callback_data.split("_")[1])
@@ -519,6 +461,8 @@ async def calendar_move(callback: CallbackQuery, state: FSMContext):
 @user_router_bot.callback_query(F.data.startswith("calendar_day"))
 async def view_history_in_day(callback: CallbackQuery):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
+
     callback_data = callback.data.split(":")[1]
     logger.info("view_history_in_day callback_data=%s", callback_data)
     day = int(callback_data.split(".")[0])
