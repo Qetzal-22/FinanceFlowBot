@@ -17,7 +17,15 @@ class DBMiddleware(BaseMiddleware):
 class AuthMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
         logger.info("ENTER IN MIDDLEWARE CHECK REGISTER")
-        user = getattr(event, "user", None)
+
+        if isinstance(event, Update):
+            if event.message:
+                user = event.message.from_user
+            elif event.callback_query:
+                user = event.callback_query.from_user
+        else:
+            user = None
+
         logger.info("MIDDLEWARE - user=%s", user)
         if not user:
             return await handler(event, data)
@@ -37,6 +45,9 @@ class AuthMiddleware(BaseMiddleware):
                     return await handler(event, data)
                 await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
             elif callback:
+                if callback.data.startswith("register"):
+                    logger.info("MIDDLEWARE - user callback_data=%s", callback.data)
+                    return await handler(event, data)
                 await callback.message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
             logger.info("Middleware user not register - block handler")
             return
