@@ -128,14 +128,20 @@ async def create_transaction(message: Message, state: FSMContext):
             await state.clear()
 
     if event:
-        if event == EventOverflowBudget.NONE:
-            return
-        elif event == EventOverflowBudget.WARNING_80:
-            await message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
-        elif event == EventOverflowBudget.WARNING_90:
-            await message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
-        elif event == EventOverflowBudget.WARNING_100:
-            await message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
+        if event["overflow_budget"]:
+            if event["overflow_budget"] == EventOverflowBudget.NONE:
+                return
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_80:
+                await message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_90:
+                await message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_100:
+                await message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
+        if event["balance_warning"]:
+            if event["balance_less_zero"]:
+                await message.answer("━━━━━━━━━━━━━━━━━━\n"
+                                     "⚠️ Баланс счета ниже 0!!! ⚠️\n"
+                                     "━━━━━━━━━━━━━━━━━━")
 
 
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
@@ -160,14 +166,21 @@ async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     if key_word:
         await create_category_aliases(user_id, category_id, key_word)
 
-    if event == EventOverflowBudget.NONE:
-        return
-    elif event == EventOverflowBudget.WARNING_80:
-        await callback.message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
-    elif event == EventOverflowBudget.WARNING_90:
-        await callback.message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
-    elif event == EventOverflowBudget.WARNING_100:
-        await callback.message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
+    if event:
+        if event["overflow_budget"]:
+            if event["overflow_budget"] == EventOverflowBudget.NONE:
+                return
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_80:
+                await callback.message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_90:
+                await callback.message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
+            elif event["overflow_budget"] == EventOverflowBudget.WARNING_100:
+                await callback.message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
+        if event["balance_warning"]:
+            if event["balance_less_zero"]:
+                await callback.message.answer("━━━━━━━━━━━━━━━━━━\n"
+                                     "⚠️ Баланс счета ниже 0!!! ⚠️\n"
+                                     "━━━━━━━━━━━━━━━━━━")
 
 
 @account_router_bot.callback_query(F.data.startswith("description_operation"))
