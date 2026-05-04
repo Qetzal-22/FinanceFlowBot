@@ -68,7 +68,7 @@ class UserCategory(Base):
 
     user = relationship("User", back_populates="categories")
     category = relationship("Category", back_populates="user_categories")
-    budgets = relationship("Budget", back_populates="user_category")
+    budgets = relationship("Budget", back_populates="user_category", cascade="all, delete-orphan")
 
 class CategoryAliases(Base):
     __tablename__ = "category_aliases"
