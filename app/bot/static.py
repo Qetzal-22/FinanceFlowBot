@@ -11,6 +11,9 @@ class CreateTransaction(StatesGroup):
     category = State()
     key_word = State()
     operation_id = State()
+    amount_between_operation = State()
+    accuont_1_between_operation = State()
+    accuont_2_between_operation = State()
 
 class AddCategory(StatesGroup):
     name = State()
