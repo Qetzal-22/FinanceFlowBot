@@ -2,13 +2,28 @@ from app.db import crud
 import logging
 from datetime import datetime
 from app.db.models import UserCategory
+from app.db.init_db import init_models
 
 logger = logging.getLogger(__name__)
 
 async def create_user(telegram_user_id: int):
     logger.info("DB request create user telegram_user_id=%s", telegram_user_id)
-    await crud.create_user(telegram_user_id)
+    user = await crud.create_user(telegram_user_id)
     logger.info("DB successful response create user telegram_user_id=%s", telegram_user_id)
+
+    categories = await crud.get_categories_all()
+    category_id = None
+    for category in categories:
+        if category.name == "transfer":
+            category_id = category.id
+
+    if not category_id:
+        await init_models()
+    
+    logger.info("DB request create user_category telegram_user_id=%s", telegram_user_id)
+    await crud.create_user_category(user.id, category_id)
+    logger.info("DB successful response create user_category telegram_user_id=%s", telegram_user_id)
+
     return True
 
 async def check_register(telegram_user_id: int) -> bool:
