@@ -12,6 +12,7 @@ async def create_operation(user_id: int, type_operation: Type_Operation, amount:
         account = await crud.get_default_bank_account_by_user_id(user_id)
     else:
         account = await crud.get_bank_account(account_id)
+    event = {}
 
     user = account.user
     logger.info("create_operation user_id=%s, category_id=%s", user.id, category_id)
@@ -21,15 +22,17 @@ async def create_operation(user_id: int, type_operation: Type_Operation, amount:
     logger.info("create_operation balance=%s amount=%s type_operation=%s", balance, amount, type_operation)
     if type_operation == Type_Operation.INCOME:
         balance_after = balance + amount
-        event = None
     else:
         balance_after = balance + amount # когда type_operation == Type_Operation.EXPENSE то amount<0 => чтоб уменишть баланс нужно balance + amount
+        if balance_after < 0:
+            event["balance_warning"] = True
+            event["balance_less_zero"] = True
         budget = await get_budget_by_user_category_id_now(user_category.id)
         if not budget is None:
             await crud.edit_budget_add_spend(budget.id, (amount*-1))
-            event = await check_overflow_budget(budget.amount, budget.spend-amount) # потраченные деньги в бюджете должны увеличиватся, поэтому spend - -amount (amount<0)
+            event["overflow_budget"] = await check_overflow_budget(budget.amount, budget.spend-amount) # потраченные деньги в бюджете должны увеличиватся, поэтому spend - -amount (amount<0)
         else:
-            event = None
+            event["overflow_budget"] = None
 
     logger.info("create_operation balance_after=%s", balance_after)
     await crud.update_bank_account(account.id, balance=balance_after)
