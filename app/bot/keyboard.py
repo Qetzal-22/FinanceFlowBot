@@ -60,16 +60,24 @@ async def choose_type_transaction_kb():
 
 async def main_bank_account_kb():
     kb = ReplyKeyboardBuilder()
+    kb.button(text="Переводы между счетами")
     kb.button(text="Создать счет")
     kb.button(text="Управление счетами")
     kb.button(text="Назад в меню")
-    kb.adjust(2, 1)
+    kb.adjust(1, 2, 1)
     return kb.as_markup(resize_keyboard=True)
 
 async def choose_account_kb(accounts: list[BankAccount]):
     kb = InlineKeyboardBuilder()
     for account in accounts:
         kb.button(text=f"{account.name}", callback_data=f"account:{account.id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
+async def select_account_between_operation_kb(accounts: list[BankAccount]):
+    kb = InlineKeyboardBuilder()
+    for account in accounts:
+        kb.button(text=f"{account.name}", callback_data=f"between_operation:{account.id}")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -174,5 +182,21 @@ async def more_for_operation_kb(operation_id: int):
     kb = InlineKeyboardBuilder()
     kb.button(text="✏️ Описание", callback_data=f"description_operation:{operation_id}")
     kb.button(text="🔄 Отменить", callback_data=f"undo_operation:{operation_id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+async def confirmation_remove_category_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Подтвердить", callback_data="confirmation_remove_category:remove")
+    kb.button(text="❌ Отмена", callback_data="confirmation_remove_category:cancel")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+async def confirmation_remove_budget_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Подтвердить", callback_data="confirmation_remove_budget:remove")
+    kb.button(text="❌ Отмена", callback_data="confirmation_remove_budget:cancel")
     kb.adjust(1)
     return kb.as_markup()
