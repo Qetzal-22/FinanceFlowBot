@@ -1,4 +1,3 @@
-from unicodedata import category
 import logging
 from datetime import datetime
 
@@ -8,8 +7,12 @@ from app.db.models import Type_Operation, BankOperation
 
 logger = logging.getLogger(__name__)
 
-async def create_operation(user_id: int, type_operation: Type_Operation, amount: float, category_id: int = None):
-    account = await crud.get_default_bank_account_by_user_id(user_id)
+async def create_operation(user_id: int, type_operation: Type_Operation, amount: float, category_id: int = None, account_id: int = None):
+    if not account_id:
+        account = await crud.get_default_bank_account_by_user_id(user_id)
+    else:
+        account = await crud.get_bank_account(account_id)
+
     user = account.user
     logger.info("create_operation user_id=%s, category_id=%s", user.id, category_id)
     user_category = await crud.get_user_category_by_user_id_and_category_id(user.id, category_id)
@@ -20,11 +23,11 @@ async def create_operation(user_id: int, type_operation: Type_Operation, amount:
         balance_after = balance + amount
         event = None
     else:
-        balance_after = balance - amount
+        balance_after = balance + amount # когда type_operation == Type_Operation.EXPENSE то amount<0 => чтоб уменишть баланс нужно balance + amount
         budget = await get_budget_by_user_category_id_now(user_category.id)
         if not budget is None:
-            await crud.edit_budget_add_spend(budget.id, amount)
-            event = await check_overflow_budget(budget.amount, budget.spend+amount)
+            await crud.edit_budget_add_spend(budget.id, (amount*-1))
+            event = await check_overflow_budget(budget.amount, budget.spend-amount) # потраченные деньги в бюджете должны увеличиватся, поэтому spend - -amount (amount<0)
         else:
             event = None
 
