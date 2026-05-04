@@ -105,6 +105,7 @@ async def create_transaction(message: Message, state: FSMContext):
             result = await create_operation(user_id, type_operation, amount)
             operation = result[0]
             await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+            await state.clear()
         else:
             categories = await get_categories(telegram_user_id)
             await message.answer("Выберите категорию 👇", reply_markup=await category_for_transaction_kb(categories))
@@ -120,6 +121,7 @@ async def create_transaction(message: Message, state: FSMContext):
             result = await create_operation(user_id, type_operation, amount, category.id)
             operation = result[0]
             await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+            await state.clear()
 
 
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
@@ -139,6 +141,7 @@ async def get_category_transaction(callback: CallbackQuery, state: FSMContext):
     operation = result[0]
     event = result[1]
     await callback.message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
+    await state.clear()
 
     if key_word:
         await create_category_aliases(user_id, category_id, key_word)
@@ -176,7 +179,15 @@ async def get_description_transaction(message: Message, state: FSMContext):
 @account_router_bot.callback_query(F.data.startswith("undo_operation"))
 async def undo_for_operation(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    telegram_user_id = callback.from_user.id
     operation_id = int(callback.data.split(":")[1])
+    operation = await crud.get_operation(operation_id)
+    accounts = await get_bank_accounts(telegram_user_id)
+    default_account = [account for account in accounts if account.is_default][0]
+
+    amount = operation.amount
+    await update_account(default_account.id, balance=default_account.balance - amount)
+
     await delete_operation(operation_id)
     await callback.message.answer("🗑️ Операция отменена")
 
@@ -208,10 +219,10 @@ async def main_menu_bank_account(message: Message):
 @account_router_bot.message(F.text.lower() == "переводы между счетами")
 async def operation_between_accounts(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
-    await state.update_date(account_1=None)
-    await state.update_date(account_2=None)
+    await state.update_data(account_1=None)
+    await state.update_data(account_2=None)
     accounts = await get_bank_accounts(telegram_user_id)
-    await message.answer("Выберети счет для списания 👇",
+    await message.answer("[.....] ➡️ [.....]\nВыберети счет для списания 👇",
                          reply_markup=await select_account_between_operation_kb(accounts))
 
 
@@ -223,11 +234,14 @@ async def handler_select_account_between_operation(callback: CallbackQuery, stat
     data = await state.get_data()
     account_1 = data["account_1"]
     account_2 = data["account_2"]
+    logger.info("handler_select_account_between_operation account_1=%s account_2=%s", account_1, account_2)
 
-    if account_2 == None:
+    if account_1 == None:
         await state.update_data(account_1=account_id)
+        account_1 = await crud.get_bank_account(account_id)
+        
         accounts = await get_bank_accounts(telegram_user_id)
-        await callback.message.answer("Выберети счет для пополнения 👇",
+        await callback.message.answer(f"[{account_1.name}] ➡️ [.....]\nВыберети счет для пополнения 👇",
                                       reply_markup=await select_account_between_operation_kb(accounts))
         return
     elif account_1 == account_2:
@@ -237,6 +251,7 @@ async def handler_select_account_between_operation(callback: CallbackQuery, stat
     else:
         await state.update_data(account_2=account_id)
         await state.set_state(CreateTransaction.amount_between_operation)
+        await callback.message.answer("✏️ Введите сумму для перевода")
 
 
 @account_router_bot.message(CreateTransaction.amount_between_operation)
@@ -272,11 +287,11 @@ async def process_amount_between_operation(message: Message, state: FSMContext):
     account_name_2 = (await crud.get_bank_account(account_2)).name
     description = f"Перевод средст с счета {account_name_1} на {account_name_2}"
 
-    res_operation_1 = await create_operation(user_id, Type_Operation.EXPENSE, amount * -1)
+    res_operation_1 = await create_operation(user_id, Type_Operation.EXPENSE, amount, category_id=1, account_id=account_1)
     operation_1 = res_operation_1[0]
     await bank_operation.add_description_for_operation(operation_1.id, description)
 
-    res_operation_2 = await create_operation(user_id, Type_Operation.INCOME, amount)
+    res_operation_2 = await create_operation(user_id, Type_Operation.INCOME, amount, account_id=account_2)
     operation_2 = res_operation_2[0]
     await bank_operation.add_description_for_operation(operation_2.id, description)
 
