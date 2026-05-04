@@ -68,6 +68,7 @@ async def record_transaction(message: Message, state: FSMContext):
 @account_router_bot.message(CreateTransaction.amount)
 async def create_transaction(message: Message, state: FSMContext):
     telegram_user_id = message.from_user.id
+    event = None
 
     user_id = await get_user_id(telegram_user_id)
 
@@ -100,10 +101,12 @@ async def create_transaction(message: Message, state: FSMContext):
     await state.update_data(type_operation=type_operation)
     await state.update_data(key_word=None)
 
+
     if len(message_text) == 1:
         if amount > 0:
             result = await create_operation(user_id, type_operation, amount)
             operation = result[0]
+            event = result[1]
             await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
             await state.clear()
         else:
@@ -120,8 +123,19 @@ async def create_transaction(message: Message, state: FSMContext):
         else:
             result = await create_operation(user_id, type_operation, amount, category.id)
             operation = result[0]
+            event = result[1]
             await message.answer("✅ Операция добавлена", reply_markup=await more_for_operation_kb(operation.id))
             await state.clear()
+
+    if event:
+        if event == EventOverflowBudget.NONE:
+            return
+        elif event == EventOverflowBudget.WARNING_80:
+            await message.answer("⚠️ Внимание: от бюджета потрачено более 80% ⚠️")
+        elif event == EventOverflowBudget.WARNING_90:
+            await message.answer("⚠️ Внимание: от бюджета потрачено более 90% ⚠️")
+        elif event == EventOverflowBudget.WARNING_100:
+            await message.answer("⚠️ Вы вышли за рамки бюджета ⚠️")
 
 
 @account_router_bot.callback_query(F.data.startswith("transaction_category"))
@@ -239,7 +253,7 @@ async def handler_select_account_between_operation(callback: CallbackQuery, stat
     if account_1 == None:
         await state.update_data(account_1=account_id)
         account_1 = await crud.get_bank_account(account_id)
-        
+
         accounts = await get_bank_accounts(telegram_user_id)
         await callback.message.answer(f"[{account_1.name}] ➡️ [.....]\nВыберети счет для пополнения 👇",
                                       reply_markup=await select_account_between_operation_kb(accounts))
