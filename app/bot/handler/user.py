@@ -6,11 +6,14 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import asyncio
 import logging
+from dotenv import load_dotenv
+import os
 
 
 from app.bot.keyboard import register_kb, create_bank_account_kb, main_menu_kb, choose_account_for_transaction_kb, \
     categories_kb, category_menu_kb, add_category_kb, main_bank_account_kb, kalendar_kb, history_kb, budget_menu_kb, \
-    user_category_for_budget_kb, budget_remove_kb, budget_control_menu_kb, budget_edit_kb
+    user_category_for_budget_kb, budget_remove_kb, budget_control_menu_kb, budget_edit_kb, \
+    confirmation_remove_category_kb, confirmation_remove_budget_kb
 from app.bot.static import AddCategory, CreateBudget, EditBudget
 from app.db.crud import get_user_category
 from app.db.models import Type_Operation
@@ -25,6 +28,7 @@ from app.utils.time import create_new_date, count_day_in_month
 
 user_router_bot = Router()
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 @user_router_bot.message(Command("start"))
 async def command_start(message: Message):
@@ -145,18 +149,10 @@ async def category(message: Message):
 @user_router_bot.callback_query(F.data.startswith("category_add"))
 async def add_category_callback(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    telegram_user_id = callback.from_user.id
-
     return await add_category(callback.message, state)
 
 @user_router_bot.message(F.text.lower() == "добавить категорию")
 async def add_category(message: Message, state: FSMContext):
-    telegram_user_id = message.from_user.id
-    check_user = await check_register(telegram_user_id)
-    if not check_user:
-        await message.answer("❌ Вы не зарегистрированы.\nНажмите кнопку ниже 👇", reply_markup=await register_kb())
-        return
-
     await state.set_state(AddCategory.name)
     await message.answer("✏️ Введите название новой категории:")
 
@@ -183,17 +179,24 @@ async def remove_category(message: Message):
     telegram_user_id = message.from_user.id
 
     categories = await get_categories(telegram_user_id)
+    for category in categories:
+        logger.info("remove category category.name=%s env_category=%s", category.name, str(os.getenv("CATEGORY_FOR_TRANSFER")))
+        if category.name == str(os.getenv("CATEGORY_FOR_TRANSFER")):
+            categories.remove(category)
     await message.answer("Выберите категорию для удаления 👇", reply_markup=await categories_kb(categories))
 
 @user_router_bot.callback_query(F.data.startswith("category_rm"))
-async def get_category_for_rm(callback: CallbackQuery):
+async def get_category_for_rm(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     telegram_user_id = callback.from_user.id
 
     category_id = int(callback.data.split(":")[1])
+    await state.update_data(category_id=category_id)
 
-    await delete_category(telegram_user_id, category_id)
-    await callback.message.answer("🗑️ Категория удалена")
+    category = await get_category(category_id)
+    await callback.message.answer(f"Подтвердите удаление {category.name}", reply_markup=await confirmation_remove_category_kb())
+
+
 
 @user_router_bot.message(F.text.lower() == "бюджеты")
 async def budget(message: Message):
@@ -264,7 +267,7 @@ async def get_amount_for_create_budget(message: Message, state: FSMContext):
 async def control_budgets(message: Message):
     telegram_user_id = message.from_user.id
 
-    await message.answer("⚙️ Управление категориями: ", reply_markup=await budget_control_menu_kb())
+    await message.answer("⚙️ Управление бюджетами: ", reply_markup=await budget_control_menu_kb())
 
 @user_router_bot.message(F.text.lower() == "изменить бюджет")
 async def choose_edit_budget(message: Message):
@@ -322,8 +325,12 @@ async def remove_budget(callback: CallbackQuery, state: FSMContext):
     telegram_user_id = callback.from_user.id
 
     user_category_id = int(callback.data.split(":")[1])
-    await services.budget.remove_budget(user_category_id)
-    await callback.message.answer("🗑️ Бюджет удален")
+    user_category = await crud.get_user_category(user_category_id)
+    category = await crud.get_category(user_category.category_id)
+
+    await state.update_data(user_category_id=user_category_id)
+    logger.info("process budget for removing user_category_id=%s", user_category_id)
+    await callback.message.answer(f"Подтвердите удаление бюджета {category.name}", reply_markup=await confirmation_remove_budget_kb())
 
 
 
@@ -497,6 +504,38 @@ async def view_history_in_day(callback: CallbackQuery):
         )
         logger.info("view_history_in_day send text")
         await callback.message.answer(text)
+
+
+@user_router_bot.callback_query(F.data.startswith("confirmation_remove_category"))
+async def handler_confirmation_remove_category(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    telegram_user_id = callback.from_user.id
+    category_id = (await state.get_data())["category_id"]
+    if callback.data.split(":")[1] == "remove":
+        await delete_category(telegram_user_id, category_id)
+        await callback.message.answer("🗑️ Категория удалена")
+    elif callback.data.split(":")[1] == "cancel":
+        await callback.message.answer("❌ Операция отменена")
+
+    await state.clear()
+
+async def confirmation_remove_budget(message: Message, budget_name: str):
+    await message.answer(f"Подтвердите удаление {budget_name}", reply_markup=await confirmation_remove_budget_kb())
+
+
+@user_router_bot.callback_query(F.data.startswith("confirmation_remove_budget"))
+async def handler_confirmation_remove_budget(callback: CallbackQuery, state: FSMContext):
+    logger.info("confirmation_remove_budget")
+    await callback.answer()
+    user_category_id = int((await state.get_data())["user_category_id"])
+
+    if callback.data.split(":")[1] == "remove":
+        await services.budget.remove_budget(user_category_id)
+        await callback.message.answer("🗑️ Бюджет удален")
+    elif callback.data.split(":")[1] == "cancel":
+        await callback.message.answer("❌ Операция отменена")
+
+    await state.clear()
 
 
 @user_router_bot.callback_query(F.data.startswith("stud"))
