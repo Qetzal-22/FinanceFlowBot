@@ -70,7 +70,7 @@ class UserCategory(Base):
     category = relationship("Category", back_populates="user_categories")
     budgets = relationship("Budget", back_populates="user_category", cascade="all, delete-orphan")
 
-class CategoryAliases(Base):
+class CategoryAlias(Base):
     __tablename__ = "category_aliases"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
