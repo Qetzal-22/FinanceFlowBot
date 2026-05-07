@@ -4,8 +4,12 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.scheduler.jobs import update_budget
 
+scheduler = AsyncIOScheduler(timezone="Asia/Vladivostok")
+
 async def start_scheduler():
-    scheduler = AsyncIOScheduler(timezone="Asia/Vladivostok")
+    if scheduler.running:
+        return
+
     scheduler.add_job(
         update_budget,
         "cron",
@@ -15,6 +19,10 @@ async def start_scheduler():
     )
 
     scheduler.start()
+
+async def stop_scheduler():
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
 
 if __name__ == "__main__":
     asyncio.run(start_scheduler())
