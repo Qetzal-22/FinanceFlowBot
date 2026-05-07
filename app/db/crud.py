@@ -5,7 +5,7 @@ from unicodedata import category
 from datetime import datetime
 
 from app.db.models import User, BankAccount, BankOperation, Type_Operation, Category, UserCategory, Budget, \
-    CategoryAliases
+    CategoryAlias
 from app.db.database import async_session
 
 import asyncio
@@ -447,7 +447,7 @@ async def delete_budget(budget_id: int):
 
 async def create_category_aliases(user_id: int, category_id: int, key_word: str):
     async with async_session() as session:
-        category_aliases = CategoryAliases(user_id=user_id, category_id=category_id, key_word=key_word)
+        category_aliases = CategoryAlias(user_id=user_id, category_id=category_id, key_word=key_word)
         session.add(category_aliases)
         await session.commit()
         await session.refresh(category_aliases)
@@ -456,7 +456,7 @@ async def create_category_aliases(user_id: int, category_id: int, key_word: str)
 async def get_category_aliases_by_key_word_and_user_id(user_id: int, key_word: str):
     async with async_session() as session:
         category_aliases = await session.execute(
-            select(CategoryAliases).where(CategoryAliases.key_word == key_word, CategoryAliases.user_id == user_id)
+            select(CategoryAlias).where(CategoryAlias.key_word == key_word, CategoryAlias.user_id == user_id)
         )
 
         return category_aliases.scalar_one_or_none()
